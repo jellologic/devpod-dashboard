@@ -1,9 +1,11 @@
-"""System stats collector thread."""
+"""System stats collector thread and workspace usage history collector."""
 
 import subprocess
 import time
+from collections import deque
 
 from . import config
+from .kube import kubectl
 
 
 def parse_cpu_lines(lines):
@@ -88,3 +90,68 @@ def collect_stats_loop():
         except Exception:
             pass
         time.sleep(2)
+
+
+def _parse_cpu_value(s):
+    """Parse kubectl top CPU value to millicores. '250m' -> 250, '2' -> 2000."""
+    s = s.strip()
+    if s.endswith("m"):
+        return int(s[:-1])
+    if s.endswith("n"):
+        return int(s[:-1]) // 1_000_000
+    try:
+        return int(s) * 1000
+    except ValueError:
+        return 0
+
+
+def _parse_mem_value(s):
+    """Parse kubectl top memory value to bytes. '512Mi' -> 536870912, '1Gi' -> 1073741824."""
+    s = s.strip()
+    if s.endswith("Ki"):
+        return int(s[:-2]) * 1024
+    if s.endswith("Mi"):
+        return int(s[:-2]) * 1024 * 1024
+    if s.endswith("Gi"):
+        return int(s[:-2]) * 1024 * 1024 * 1024
+    if s.endswith("k"):
+        return int(s[:-1]) * 1000
+    if s.endswith("M"):
+        return int(s[:-1]) * 1_000_000
+    if s.endswith("G"):
+        return int(s[:-1]) * 1_000_000_000
+    try:
+        return int(s)
+    except ValueError:
+        return 0
+
+
+def collect_ws_usage_loop():
+    """Background loop collecting per-pod CPU/memory usage every 120 seconds."""
+    time.sleep(15)  # Initial delay
+    while True:
+        try:
+            r = kubectl(["top", "pods", "--no-headers"])
+            if r.returncode == 0:
+                now = time.time()
+                seen_pods = set()
+                for line in r.stdout.strip().split("\n"):
+                    parts = line.split()
+                    if len(parts) >= 3:
+                        pod_name = parts[0]
+                        cpu_mc = _parse_cpu_value(parts[1])
+                        mem_bytes = _parse_mem_value(parts[2])
+                        seen_pods.add(pod_name)
+                        with config.ws_usage_lock:
+                            if pod_name not in config.ws_usage_history:
+                                config.ws_usage_history[pod_name] = deque(maxlen=720)
+                            config.ws_usage_history[pod_name].append((now, cpu_mc, mem_bytes))
+
+                # Clean up stale entries
+                with config.ws_usage_lock:
+                    stale = [k for k in config.ws_usage_history if k not in seen_pods]
+                    for k in stale:
+                        del config.ws_usage_history[k]
+        except Exception:
+            pass
+        time.sleep(120)

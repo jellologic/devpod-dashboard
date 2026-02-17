@@ -12,15 +12,21 @@ from .settings import (get_settings, save_provider_defaults, save_limitrange, sa
 from .workspaces import (get_workspaces, get_workspace_detail,
                          stop_workspace, start_workspace, set_timer,
                          create_workspace, delete_workspace,
-                         duplicate_workspace, resize_workspace)
+                         duplicate_workspace, resize_workspace,
+                         filter_workspaces_for_user, touch_last_accessed)
 from .logs import get_creation_log, stream_pod_logs
-from .stats import collect_stats_loop
+from .stats import collect_stats_loop, collect_ws_usage_loop
+from .presets import get_presets, save_preset, delete_preset, create_from_preset
+from .schedules import (get_schedules, set_schedule, remove_schedule, scheduler_loop,
+                        get_expiry_days, set_expiry_days)
+from .terminal import handle_terminal
 from .templates import render_main_page, render_workspace_detail_page
 
 
 class DashboardHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if not check_auth(self):
+        user = check_auth(self)
+        if not user:
             return
 
         path = self.path.split("?")[0]  # strip query string
@@ -28,8 +34,9 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
         # GET / - main dashboard
         if path == "/":
             workspaces = get_workspaces()
+            workspaces = filter_workspaces_for_user(workspaces, user)
             settings = get_settings()
-            html = render_main_page(workspaces, settings)
+            html = render_main_page(workspaces, settings, user=user)
             self._send_html(html)
 
         # GET /workspace/<name> - workspace detail page
@@ -40,7 +47,10 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
                 self._send_json({"error": "Missing workspace name"}, 400)
                 return
             detail = get_workspace_detail(ws_name)
-            html = render_workspace_detail_page(detail)
+            # Touch last-accessed for running pods (expiry tracking)
+            if detail.get("running") and detail.get("pod"):
+                touch_last_accessed(detail["pod"])
+            html = render_workspace_detail_page(detail, user=user)
             self._send_html(html)
 
         # GET /api/logs/stream/<pod_name> - SSE endpoint for live pod logs
@@ -52,6 +62,25 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
                 return
             self._stream_sse_logs(pod_name)
 
+        # GET /api/presets
+        elif path == "/api/presets":
+            self._send_json(get_presets())
+
+        # GET /api/schedules
+        elif path == "/api/schedules":
+            self._send_json(get_schedules())
+
+        # GET /api/terminal/<pod_name> - WebSocket terminal
+        elif path.startswith("/api/terminal/"):
+            pod_name = path[len("/api/terminal/"):]
+            pod_name = _url_decode(pod_name)
+            if not pod_name:
+                self._send_json({"error": "Missing pod name"}, 400)
+                return
+            handle_terminal(self, pod_name)
+            self.close_connection = True
+            return
+
         # GET /api/logs/creation/<ws_name> - JSON endpoint for creation logs
         elif path.startswith("/api/logs/creation/"):
             ws_name = path[len("/api/logs/creation/"):]
@@ -62,6 +91,18 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             else:
                 self._send_json({"lines": lines, "status": status, "creating": True})
 
+        # GET /api/usage-history/<pod_name> - Usage history for sparklines
+        elif path.startswith("/api/usage-history/"):
+            pod_name = path[len("/api/usage-history/"):]
+            pod_name = _url_decode(pod_name)
+            with config.ws_usage_lock:
+                history = list(config.ws_usage_history.get(pod_name, []))
+            self._send_json(history)
+
+        # GET /api/expiry - Get expiry days setting
+        elif path == "/api/expiry":
+            self._send_json({"days": get_expiry_days()})
+
         else:
             self.send_response(404)
             self.send_header("Content-Type", "text/plain")
@@ -69,7 +110,8 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(b"Not Found")
 
     def do_POST(self):
-        if not check_auth(self):
+        user = check_auth(self)
+        if not user:
             return
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length)) if length else {}
@@ -82,7 +124,7 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/timer":
             ok, msg = set_timer(body.get("pod", ""), body.get("hours", 0))
         elif path == "/api/create":
-            ok, msg = create_workspace(body.get("repo", ""), body.get("name", ""))
+            ok, msg = create_workspace(body.get("repo", ""), body.get("name", ""), owner=user)
         elif path == "/api/delete":
             ok, msg = delete_workspace(body.get("name", ""), body.get("pod", ""), body.get("uid", ""))
         elif path == "/api/duplicate":
@@ -92,6 +134,39 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             ok, msg = resize_workspace(body.get("pod", ""), body.get("uid", ""),
                                         body.get("req_cpu", "4"), body.get("req_mem", "8Gi"),
                                         body.get("lim_cpu", "24"), body.get("lim_mem", "64Gi"))
+        elif path == "/api/presets":
+            ok, msg = save_preset(body.get("name", ""), body.get("description", ""),
+                                   body.get("repo_url", ""), body.get("req_cpu", "4"),
+                                   body.get("req_mem", "8Gi"), body.get("lim_cpu", "24"),
+                                   body.get("lim_mem", "64Gi"))
+        elif path == "/api/presets/delete":
+            ok, msg = delete_preset(body.get("id", ""))
+        elif path == "/api/create-from-preset":
+            ok, msg = create_from_preset(body.get("id", ""), body.get("name", ""))
+        elif path == "/api/schedule/set":
+            ok, msg = set_schedule(body.get("workspace", ""), body.get("pod_name", ""),
+                                    body.get("action", ""), body.get("days", []),
+                                    body.get("hour", 0), body.get("minute", 0))
+        elif path == "/api/schedule/remove":
+            ok, msg = remove_schedule(body.get("workspace", ""), body.get("action", ""))
+        elif path == "/api/bulk/stop":
+            results = []
+            for pod in body.get("pods", []):
+                ok_i, msg_i = stop_workspace(pod)
+                results.append(msg_i)
+            ok, msg = True, f"Stopped {len(results)} workspace(s)"
+        elif path == "/api/bulk/start":
+            results = []
+            for pod in body.get("pods", []):
+                ok_i, msg_i = start_workspace(pod)
+                results.append(msg_i)
+            ok, msg = True, f"Started {len(results)} workspace(s)"
+        elif path == "/api/bulk/delete":
+            results = []
+            for ws in body.get("workspaces", []):
+                ok_i, msg_i = delete_workspace(ws.get("name", ""), ws.get("pod", ""), ws.get("uid", ""))
+                results.append(msg_i)
+            ok, msg = True, f"Deleted {len(results)} workspace(s)"
         elif path == "/api/settings/provider":
             ok, msg = save_provider_defaults(body.get("req_cpu", "4"), body.get("req_mem", "8Gi"),
                                               body.get("lim_cpu", "24"), body.get("lim_mem", "64Gi"))
@@ -101,6 +176,8 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/settings/quota":
             ok, msg = save_quota(body.get("req_cpu", "72"), body.get("req_mem", "192Gi"),
                                   body.get("pods", "20"))
+        elif path == "/api/expiry":
+            ok, msg = set_expiry_days(body.get("days", 0))
         else:
             ok, msg = False, "Unknown endpoint"
 
@@ -146,7 +223,10 @@ def _url_decode(s):
 
 
 def main():
+    config.load_users()
     threading.Thread(target=collect_stats_loop, daemon=True).start()
+    threading.Thread(target=collect_ws_usage_loop, daemon=True).start()
+    threading.Thread(target=scheduler_loop, daemon=True).start()
     time.sleep(2.5)
     port = config.LISTEN_PORT
     server = http.server.ThreadingHTTPServer(("0.0.0.0", port), DashboardHandler)

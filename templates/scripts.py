@@ -68,11 +68,91 @@ function promptDuplicate(name,pod,repo){
     .then(r=>r.json()).then(d=>{showToast(d.message,d.ok);if(d.ok)setTimeout(()=>location.reload(),2000)})
     .catch(()=>showToast('Failed',false));
 }
+// Presets
+async function loadPresets(){
+  try{const r=await fetch('/api/presets');const presets=await r.json();
+  const grid=document.getElementById('presets-grid');
+  if(!presets.length){grid.innerHTML='<span class="muted" style="font-size:0.78rem">No templates saved yet</span>';return}
+  grid.innerHTML='';
+  presets.forEach(p=>{
+    const card=document.createElement('div');card.className='preset-card';
+    card.innerHTML='<div class="preset-name">'+p.name+'</div>'+
+      (p.description?'<div class="preset-desc">'+p.description+'</div>':'')+
+      '<div class="preset-meta">'+p.lim_cpu+'c / '+p.lim_mem+'</div>'+
+      '<button class="preset-del" onclick="event.stopPropagation();deletePreset(\''+p.id+'\')" title="Delete template">&times;</button>';
+    card.onclick=function(){usePreset(p.id,p.repo_url)};
+    grid.appendChild(card);
+  });
+  }catch(e){console.error('loadPresets',e)}
+}
+function usePreset(id,repo){
+  const name=prompt('Workspace name (optional):','');
+  if(name===null)return;
+  showToast('Creating from template...',true);
+  fetch('/api/create-from-preset',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:id,name:name})}).then(r=>r.json()).then(d=>{showToast(d.message,d.ok);if(d.ok)setTimeout(()=>location.reload(),2000)}).catch(()=>showToast('Failed',false));
+}
+async function deletePreset(id){
+  if(!confirm('Delete this template?'))return;
+  try{const r=await fetch('/api/presets/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+  const d=await r.json();showToast(d.message,d.ok);loadPresets()}catch(e){showToast('Failed',false)}
+}
+function showSavePresetForm(){document.getElementById('save-preset-form').classList.add('open')}
+function hideSavePresetForm(){document.getElementById('save-preset-form').classList.remove('open')}
+async function savePreset(){
+  const body={name:document.getElementById('sp-name').value.trim(),
+    description:document.getElementById('sp-desc').value.trim(),
+    repo_url:document.getElementById('sp-repo').value.trim(),
+    req_cpu:document.getElementById('sp-rcpu').value,req_mem:document.getElementById('sp-rmem').value,
+    lim_cpu:document.getElementById('sp-lcpu').value,lim_mem:document.getElementById('sp-lmem').value};
+  if(!body.name||!body.repo_url){showToast('Name and repo URL required',false);return}
+  try{const r=await fetch('/api/presets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();showToast(d.message,d.ok);if(d.ok){hideSavePresetForm();loadPresets()}}catch(e){showToast('Failed',false)}
+}
+
+function toggleSelectAll(el){document.querySelectorAll('.ws-check').forEach(c=>{c.checked=el.checked});updateBulkBar()}
+function updateBulkBar(){const checked=document.querySelectorAll('.ws-check:checked');const bar=document.getElementById('bulk-bar');const cnt=document.getElementById('bulk-count');if(checked.length>0){bar.classList.add('visible');cnt.textContent=checked.length+' selected'}else{bar.classList.remove('visible')}}
+async function bulkAction(action){
+  const checked=document.querySelectorAll('.ws-check:checked');
+  if(!checked.length)return;
+  if(action==='delete'&&!confirm('Delete '+checked.length+' workspace(s)? This cannot be undone.'))return;
+  const bar=document.getElementById('bulk-bar');
+  bar.querySelectorAll('button').forEach(b=>{b.disabled=true});
+  try{
+    if(action==='delete'){
+      const workspaces=[];checked.forEach(c=>workspaces.push({name:c.dataset.name,pod:c.dataset.pod,uid:c.dataset.uid}));
+      const r=await fetch('/api/bulk/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workspaces:workspaces})});
+      const d=await r.json();showToast(d.message,d.ok);
+    }else{
+      const pods=[];checked.forEach(c=>pods.push(c.dataset.pod));
+      const r=await fetch('/api/bulk/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pods:pods})});
+      const d=await r.json();showToast(d.message,d.ok);
+    }
+    setTimeout(()=>location.reload(),2000);
+  }catch(e){showToast('Bulk action failed',false)}
+}
+
+// Expiry settings (Feature 5)
+async function loadExpiry(){
+  try{const r=await fetch('/api/expiry');const d=await r.json();
+  const el=document.getElementById('s-expiry-days');
+  if(el)el.value=d.days||0;
+  }catch(e){}
+}
+async function saveExpiry(){
+  const days=parseInt(document.getElementById('s-expiry-days').value)||0;
+  try{const r=await fetch('/api/expiry',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({days:days})});
+  const d=await r.json();showToast(d.message,d.ok)}catch(e){showToast('Failed',false)}
+}
+
 document.getElementById('repo').addEventListener('keydown',e=>{if(e.key==='Enter')createWorkspace()});
 document.addEventListener('click',e=>{const p=document.getElementById('resize-popup');if(p.classList.contains('open')&&!p.contains(e.target)&&!e.target.classList.contains('btn-icon'))hideResize()});
 let rt=setInterval(()=>location.reload(),10000);
 document.addEventListener('mousedown',()=>clearInterval(rt));
 document.addEventListener('mouseup',()=>{rt=setInterval(()=>location.reload(),10000)});
+loadPresets();
+loadExpiry();
 """
 
 DETAIL_PAGE_JS = """\
@@ -98,6 +178,104 @@ function promptDuplicate(name,pod,repo){
     body:JSON.stringify({name:name,pod:pod,repo:repo,new_name:newName})})
     .then(r=>r.json()).then(d=>{showToast(d.message,d.ok);if(d.ok)setTimeout(()=>window.location='/',2000)})
     .catch(()=>showToast('Failed',false));
+}
+
+// Save as template
+async function saveAsTemplate(name,repo,rcpu,rmem,lcpu,lmem){
+  const tplName=prompt('Template name:',name+' template');
+  if(!tplName)return;
+  const desc=prompt('Description (optional):','');
+  if(desc===null)return;
+  try{const r=await fetch('/api/presets',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:tplName,description:desc,repo_url:repo,req_cpu:rcpu,req_mem:rmem,lim_cpu:lcpu,lim_mem:lmem})});
+  const d=await r.json();showToast(d.message,d.ok)}catch(e){showToast('Failed',false)}
+}
+
+// Terminal
+let termWs=null,termObj=null,termFit=null;
+function connectTerminal(podName){
+  if(termWs){disconnectTerminal();return}
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  const url=proto+'//'+location.host+'/api/terminal/'+encodeURIComponent(podName);
+  const statusEl=document.getElementById('term-status');
+  const connectBtn=document.getElementById('term-connect-btn');
+  const disconnectBtn=document.getElementById('term-disconnect-btn');
+  statusEl.textContent='Connecting...';
+  termWs=new WebSocket(url);
+  termWs.binaryType='arraybuffer';
+  termObj=new Terminal({cursorBlink:true,fontSize:13,theme:{background:'#0d1117',foreground:'#e1e4e8'}});
+  termFit=new FitAddon.FitAddon();
+  termObj.loadAddon(termFit);
+  termObj.open(document.getElementById('terminal-container'));
+  termFit.fit();
+  termObj.onData(function(data){if(termWs&&termWs.readyState===1){termWs.send(new TextEncoder().encode(data))}});
+  termWs.onopen=function(){statusEl.textContent='Connected';connectBtn.style.display='none';disconnectBtn.style.display='';
+    // Pause auto-refresh while terminal is open
+    clearInterval(detailRefresh);
+  };
+  termWs.onmessage=function(e){
+    if(e.data instanceof ArrayBuffer){termObj.write(new Uint8Array(e.data))}
+    else{termObj.write(e.data)}
+  };
+  termWs.onclose=function(){statusEl.textContent='Disconnected';connectBtn.style.display='';disconnectBtn.style.display='none';
+    detailRefresh=setInterval(()=>location.reload(),15000);
+  };
+  termWs.onerror=function(){statusEl.textContent='Error';disconnectTerminal()};
+  window.addEventListener('resize',function(){if(termFit)try{termFit.fit()}catch(e){}});
+}
+function disconnectTerminal(){
+  if(termWs){try{termWs.close()}catch(e){}}
+  termWs=null;
+  if(termObj){termObj.dispose();termObj=null}
+  termFit=null;
+  document.getElementById('terminal-container').innerHTML='';
+  document.getElementById('term-connect-btn').style.display='';
+  document.getElementById('term-disconnect-btn').style.display='none';
+  document.getElementById('term-status').textContent='Disconnected';
+}
+
+// Schedules
+async function loadSchedules(){
+  if(typeof WS_NAME==='undefined')return;
+  try{const r=await fetch('/api/schedules');const all=await r.json();
+  const mine=all.filter(s=>s.workspace===WS_NAME);
+  mine.forEach(s=>{
+    const prefix=s.action==='start'?'start':'stop';
+    const timeInput=document.getElementById('sched-'+prefix+'-time');
+    if(timeInput)timeInput.value=String(s.hour).padStart(2,'0')+':'+String(s.minute).padStart(2,'0');
+    (s.days||[]).forEach(d=>{
+      const cb=document.getElementById('sched-'+prefix+'-'+d);
+      if(cb)cb.checked=true;
+    });
+  });
+  }catch(e){console.error('loadSchedules',e)}
+}
+async function saveSchedule(action){
+  const prefix=action;
+  const timeVal=document.getElementById('sched-'+prefix+'-time').value;
+  if(!timeVal){showToast('Set a time first',false);return}
+  const parts=timeVal.split(':');
+  const days=[];
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>{
+    const cb=document.getElementById('sched-'+prefix+'-'+d);
+    if(cb&&cb.checked)days.push(d);
+  });
+  if(!days.length){showToast('Select at least one day',false);return}
+  try{const r=await fetch('/api/schedule/set',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({workspace:WS_NAME,pod_name:POD_NAME,action:action,days:days,hour:parseInt(parts[0]),minute:parseInt(parts[1])})});
+  const d=await r.json();showToast(d.message,d.ok)}catch(e){showToast('Failed',false)}
+}
+async function removeSchedule(action){
+  try{const r=await fetch('/api/schedule/remove',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({workspace:WS_NAME,action:action})});
+  const d=await r.json();showToast(d.message,d.ok);
+  // Clear UI
+  const prefix=action;
+  document.getElementById('sched-'+prefix+'-time').value='';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>{
+    const cb=document.getElementById('sched-'+prefix+'-'+d);if(cb)cb.checked=false;
+  });
+  }catch(e){showToast('Failed',false)}
 }
 
 // Live log streaming via SSE
@@ -142,8 +320,68 @@ function startCreationLogPoll(wsName){
   },2000);
 }
 
+// Usage history sparklines (Feature 3)
+async function loadUsageHistory(podName){
+  if(!podName)return;
+  try{
+    const r=await fetch('/api/usage-history/'+encodeURIComponent(podName));
+    const data=await r.json();
+    if(!data.length)return;
+    const cpuData=data.map(d=>[d[0],d[1]]);
+    const memData=data.map(d=>[d[0],d[2]]);
+    renderSparkline('sparkline-cpu',cpuData,'#d29922','CPU','m');
+    renderSparkline('sparkline-mem',memData,'#1f6feb','Memory','bytes');
+  }catch(e){console.error('loadUsageHistory',e)}
+}
+
+function renderSparkline(svgId,data,color,label,unit){
+  const svg=document.getElementById(svgId);
+  if(!svg||!data.length)return;
+  const W=200,H=40,pad=1;
+  const vals=data.map(d=>d[1]);
+  const minV=Math.min(...vals),maxV=Math.max(...vals);
+  const range=maxV-minV||1;
+  const points=data.map((d,i)=>{
+    const x=pad+(i/(data.length-1||1))*(W-2*pad);
+    const y=H-pad-((d[1]-minV)/range)*(H-2*pad);
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  // Fill polygon
+  const firstX=(pad).toFixed(1);
+  const lastX=(pad+((data.length-1)/(data.length-1||1))*(W-2*pad)).toFixed(1);
+  const fillPts=firstX+','+H+' '+points+' '+lastX+','+H;
+  svg.innerHTML='<polygon points="'+fillPts+'" fill="'+color+'" opacity="0.15"/>'+
+    '<polyline points="'+points+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round"/>';
+  // Update value display
+  const valEl=document.getElementById(svgId+'-val');
+  const minEl=document.getElementById(svgId+'-min');
+  const maxEl=document.getElementById(svgId+'-max');
+  const last=vals[vals.length-1];
+  if(valEl){
+    if(unit==='bytes')valEl.textContent=formatBytes(last);
+    else valEl.textContent=last+'m';
+  }
+  if(minEl){
+    if(unit==='bytes')minEl.textContent='min: '+formatBytes(minV);
+    else minEl.textContent='min: '+minV+'m';
+  }
+  if(maxEl){
+    if(unit==='bytes')maxEl.textContent='max: '+formatBytes(maxV);
+    else maxEl.textContent='max: '+maxV+'m';
+  }
+}
+
+function formatBytes(b){
+  if(b>=1073741824)return (b/1073741824).toFixed(1)+'Gi';
+  if(b>=1048576)return (b/1048576).toFixed(0)+'Mi';
+  if(b>=1024)return (b/1024).toFixed(0)+'Ki';
+  return b+'B';
+}
+
 // Auto-refresh for detail page (slower)
 let detailRefresh=setInterval(()=>location.reload(),15000);
 document.addEventListener('mousedown',()=>clearInterval(detailRefresh));
 document.addEventListener('mouseup',()=>{detailRefresh=setInterval(()=>location.reload(),15000)});
+loadSchedules();
+if(typeof POD_NAME!=='undefined'&&POD_NAME)loadUsageHistory(POD_NAME);
 """

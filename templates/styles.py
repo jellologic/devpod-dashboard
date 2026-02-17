@@ -120,6 +120,46 @@ MAIN_PAGE_CSS = """\
 .usage-display { font-size:0.78rem; font-family:'SF Mono',Menlo,monospace; }
 .usage-cpu { color:#d29922; }
 .usage-mem { color:#1f6feb; }
+
+.bulk-bar { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); background:var(--card);
+            border:1px solid var(--border2); border-radius:10px; padding:0.5rem 1.2rem; display:none;
+            align-items:center; gap:0.75rem; z-index:90; box-shadow:0 4px 16px rgba(0,0,0,0.5); }
+.bulk-bar.visible { display:flex; }
+.bulk-bar .bulk-count { font-size:0.82rem; color:var(--text); font-weight:500; margin-right:0.25rem; }
+.ws-check, #select-all { width:16px; height:16px; cursor:pointer; accent-color:var(--link); }
+
+.presets-section { margin:1rem 0; }
+.presets-toggle { cursor:pointer; color:var(--link); font-size:0.82rem; font-weight:500;
+                  display:inline-block; margin-bottom:0.5rem; }
+.presets-grid { display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem; }
+.preset-card { background:var(--card); border:1px solid var(--border2); border-radius:8px;
+               padding:0.6rem 0.9rem; cursor:pointer; transition:border-color 0.15s; min-width:180px;
+               max-width:260px; position:relative; }
+.preset-card:hover { border-color:var(--link); }
+.preset-card .preset-name { font-weight:600; font-size:0.82rem; margin-bottom:2px; }
+.preset-card .preset-desc { font-size:0.72rem; color:var(--muted); margin-bottom:4px; }
+.preset-card .preset-meta { font-size:0.68rem; color:var(--muted); font-family:'SF Mono',Menlo,monospace; }
+.preset-card .preset-del { position:absolute; top:4px; right:6px; background:none; border:none;
+                            color:#f85149; cursor:pointer; font-size:0.72rem; opacity:0.5; }
+.preset-card .preset-del:hover { opacity:1; }
+.save-preset-form { background:var(--card); border:1px solid var(--border2); border-radius:8px;
+                     padding:0.75rem 1rem; margin-bottom:0.75rem; display:none; }
+.save-preset-form.open { display:block; }
+.save-preset-form .form-row { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.4rem; flex-wrap:wrap; }
+.save-preset-form label { color:var(--muted); font-size:0.72rem; min-width:80px; }
+.save-preset-form input { background:#0d1117; border:1px solid var(--border2); border-radius:4px;
+                            color:var(--text); padding:0.25rem 0.5rem; font-size:0.78rem; width:180px; }
+
+/* Git Status (Feature 1) */
+.git-branch { font-family:'SF Mono',Menlo,monospace; font-size:0.72rem; color:var(--muted);
+              margin-left:0.3rem; }
+.git-dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+           margin-right:3px; vertical-align:middle; }
+.git-dot.clean { background:#3fb950; }
+.git-dot.dirty { background:#d29922; }
+
+/* Expiry (Feature 5) */
+.expiry-icon { font-size:0.72rem; margin-left:3px; }
 """
 
 DETAIL_PAGE_CSS = """\
@@ -156,4 +196,47 @@ DETAIL_PAGE_CSS = """\
 .event-table td { padding:0.3rem 0.6rem; font-size:0.75rem; }
 .event-type-warning { color:#d29922; }
 .event-type-normal { color:#3fb950; }
+
+.schedule-row { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem; flex-wrap:wrap; }
+.schedule-row .sched-label { font-size:0.78rem; font-weight:500; min-width:70px; }
+.day-checks { display:flex; gap:0.3rem; }
+.day-checks label { font-size:0.68rem; color:var(--muted); display:flex; align-items:center; gap:2px;
+                     cursor:pointer; }
+.day-checks input { width:13px; height:13px; accent-color:var(--link); }
+input[type="time"] { background:#0d1117; border:1px solid var(--border2); border-radius:4px;
+                      color:var(--text); padding:0.2rem 0.4rem; font-size:0.78rem; }
+
+#terminal-container { background:#000; border-radius:6px; overflow:hidden; margin-top:0.5rem; }
+#terminal-container .xterm { padding:4px; }
+.term-controls { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem; }
+.term-status { font-size:0.75rem; color:var(--muted); }
+
+/* Git Status card (Feature 1) */
+.git-status-badge { display:inline-block; padding:0.15rem 0.5rem; border-radius:10px;
+                    font-size:0.72rem; font-weight:500; }
+.git-status-badge.clean { background:#23863620; color:#3fb950; border:1px solid #3fb95040; }
+.git-status-badge.dirty { background:#d2992220; color:#d29922; border:1px solid #d2992240; }
+
+/* PVC usage bar (Feature 2) */
+.pvc-bar { height:10px; background:#21262d; border-radius:3px; overflow:hidden; display:flex;
+           min-width:80px; max-width:120px; display:inline-flex; vertical-align:middle; }
+.pvc-bar .bar-seg { height:100%; }
+
+/* Sparkline (Feature 3) */
+.sparkline-card { padding:0.75rem 1rem; }
+.sparkline-row { display:flex; gap:2rem; flex-wrap:wrap; }
+.sparkline-item { flex:1; min-width:200px; }
+.sparkline-header { display:flex; justify-content:space-between; align-items:baseline;
+                    margin-bottom:0.25rem; }
+.sparkline-label { font-size:0.72rem; color:var(--muted); text-transform:uppercase;
+                   letter-spacing:0.04em; font-weight:500; }
+.sparkline-value { font-size:0.82rem; font-weight:600; font-family:'SF Mono',Menlo,monospace; }
+.sparkline-chart { width:100%; }
+.sparkline-chart svg { width:100%; display:block; }
+.sparkline-range { display:flex; justify-content:space-between; font-size:0.65rem;
+                   color:var(--muted); margin-top:2px; }
+
+/* Expiry warning (Feature 5) */
+.expiry-warning { background:#d2992215; border:1px solid #d2992240; border-radius:8px;
+                  padding:0.6rem 1rem; margin-bottom:1rem; color:#d29922; font-size:0.82rem; }
 """

@@ -3,7 +3,7 @@
 from .styles import COMMON_CSS
 
 
-def wrap_page(title, body_html, page_css="", page_js=""):
+def wrap_page(title, body_html, page_css="", page_js="", head_extra=""):
     """Wrap body content in a full HTML document with shared styles."""
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -15,6 +15,7 @@ def wrap_page(title, body_html, page_css="", page_js=""):
 {COMMON_CSS}
 {page_css}
 </style>
+{head_extra}
 </head>
 <body>
 {body_html}

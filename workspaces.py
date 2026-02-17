@@ -21,19 +21,95 @@ def _devpod_env():
     }
 
 
-def get_git_repo_for_pod(pod_name, workspace_name):
-    """Get git remote URL from inside a running pod."""
+def get_git_info_for_pod(pod_name, workspace_name):
+    """Get git info from inside a running pod: repo, branch, dirty, last_commit."""
+    result = {"repo": "", "branch": "", "dirty": False, "last_commit": ""}
     try:
-        r = kubectl(["exec", pod_name, "--",
-                      "cat", f"/workspaces/{workspace_name}/.git/config"])
+        cmd = (
+            f'cd /workspaces/{workspace_name} && '
+            f'git remote get-url origin 2>/dev/null; echo "---"; '
+            f'git rev-parse --abbrev-ref HEAD 2>/dev/null; echo "---"; '
+            f'git status --porcelain 2>/dev/null | head -1; echo "---"; '
+            f'git log -1 --format="%h %s" 2>/dev/null'
+        )
+        r = kubectl(["exec", pod_name, "--", "sh", "-c", cmd])
         if r.returncode == 0:
-            for line in r.stdout.split("\n"):
-                line = line.strip()
-                if line.startswith("url = "):
-                    return line[6:].strip()
+            parts = r.stdout.split("---\n")
+            if len(parts) >= 4:
+                result["repo"] = parts[0].strip()
+                result["branch"] = parts[1].strip()
+                result["dirty"] = len(parts[2].strip()) > 0
+                result["last_commit"] = parts[3].strip()
+            elif len(parts) >= 1:
+                result["repo"] = parts[0].strip()
     except Exception:
         pass
-    return ""
+    return result
+
+
+def get_pvc_usage(pod_name, workspace_name):
+    """Get actual disk usage inside a running pod via df."""
+    try:
+        r = kubectl(["exec", pod_name, "--", "df", "-B1", f"/workspaces/{workspace_name}"])
+        if r.returncode == 0:
+            lines = r.stdout.strip().split("\n")
+            if len(lines) >= 2:
+                parts = lines[1].split()
+                if len(parts) >= 5:
+                    total = int(parts[1])
+                    used = int(parts[2])
+                    available = int(parts[3])
+                    percent = int(parts[4].rstrip("%"))
+                    return {
+                        "total": _human_bytes(total),
+                        "used": _human_bytes(used),
+                        "available": _human_bytes(available),
+                        "percent": percent,
+                        "total_raw": total,
+                        "used_raw": used,
+                    }
+    except Exception:
+        pass
+    return {}
+
+
+def _human_bytes(b):
+    """Format bytes to human-readable (e.g. 3.2Gi)."""
+    if b >= 1024**3:
+        return f"{b / (1024**3):.1f}Gi"
+    elif b >= 1024**2:
+        return f"{b / (1024**2):.0f}Mi"
+    elif b >= 1024:
+        return f"{b / 1024:.0f}Ki"
+    return f"{b}B"
+
+
+def touch_last_accessed(pod_name):
+    """Annotate pod with current timestamp for expiry tracking."""
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        kubectl(["annotate", "pod", pod_name,
+                 f"devpod-dashboard/last-accessed={now}", "--overwrite"])
+    except Exception:
+        pass
+
+
+def filter_workspaces_for_user(workspaces, username):
+    """Filter workspaces based on user role and ownership."""
+    if not config.users:
+        return workspaces  # single-user mode, show all
+    uinfo = config.users.get(username, {})
+    if uinfo.get("role") == "admin":
+        return workspaces
+    prefixes = uinfo.get("prefixes", [])
+    filtered = []
+    for w in workspaces:
+        owner = w.get("owner", "")
+        if owner == username:
+            filtered.append(w)
+        elif any(w["name"].startswith(p) for p in prefixes):
+            filtered.append(w)
+    return filtered
 
 
 def get_workspaces():
@@ -86,15 +162,27 @@ def get_workspaces():
                 "lim_mem": c_res.get("limits", {}).get("memory", ""),
             }
         ws_display = workspace_name or name
-        repo = get_git_repo_for_pod(name, ws_display) if status == "Running" else ""
+
+        # Git info (replaces old get_git_repo_for_pod)
+        git_info = get_git_info_for_pod(name, ws_display) if status == "Running" else {"repo": "", "branch": "", "dirty": False, "last_commit": ""}
+
+        # Ownership + expiry annotations
+        owner = annotations.get("devpod-dashboard/owner", "")
+        last_accessed = annotations.get("devpod-dashboard/last-accessed", "")
+        expiry_warning = annotations.get("devpod-dashboard/expiry-warning", "")
+
         running_names.add(ws_display)
         workspaces.append({
             "name": ws_display, "status": status, "port": svc_map.get(uid, 0),
             "pod": name, "uid": uid, "running": True, "creating": False,
             "shutdown_at": annotations.get("devpod.sh/auto-shutdown-at", ""),
             "shutdown_hours": annotations.get("devpod.sh/auto-shutdown-hours", ""),
-            "resources": res, "repo": repo,
+            "resources": res, "repo": git_info["repo"],
+            "branch": git_info["branch"], "dirty": git_info["dirty"],
+            "last_commit": git_info["last_commit"],
             "usage": usage_map.get(name, {}),
+            "owner": owner, "last_accessed": last_accessed,
+            "expiry_warning": expiry_warning,
         })
 
     cms = kubectl_json(["get", "configmap", "-l", "managed-by=devpod-dashboard"])
@@ -120,7 +208,8 @@ def get_workspaces():
                     "pod": data.get("metadata", {}).get("name", ""), "uid": uid,
                     "running": False, "creating": False,
                     "shutdown_at": "", "shutdown_hours": "", "resources": res,
-                    "repo": "",
+                    "repo": "", "branch": "", "dirty": False, "last_commit": "",
+                    "owner": "", "last_accessed": "", "expiry_warning": "",
                 })
 
     with config.creating_lock:
@@ -133,7 +222,8 @@ def get_workspaces():
                     "name": cname, "status": cinfo["status"], "port": 0,
                     "pod": "", "uid": "", "running": False, "creating": True,
                     "shutdown_at": "", "shutdown_hours": "", "resources": {},
-                    "repo": "",
+                    "repo": "", "branch": "", "dirty": False, "last_commit": "",
+                    "owner": "", "last_accessed": "", "expiry_warning": "",
                 })
 
     workspaces.sort(key=lambda w: (not w["running"] and not w["creating"],
@@ -431,7 +521,7 @@ def duplicate_workspace(source_pod, source_name, new_name, repo):
     return True, f"Duplicating '{source_name}' as '{new_name}'"
 
 
-def create_workspace(repo, name=""):
+def create_workspace(repo, name="", owner=""):
     from .logs import LogBuffer
 
     if not repo:
@@ -464,6 +554,9 @@ def create_workspace(repo, name=""):
             with config.creating_lock:
                 if proc.returncode == 0:
                     config.creating_workspaces.pop(name, None)
+                    # Set owner annotation if provided
+                    if owner:
+                        _set_owner_annotation(name, owner)
                 else:
                     config.creating_workspaces[name] = {
                         "status": f"Failed (rc={proc.returncode})",
@@ -486,14 +579,32 @@ def create_workspace(repo, name=""):
     return True, f"Creating workspace '{name}' from {repo}"
 
 
+def _set_owner_annotation(ws_name, owner):
+    """Find the pod for a workspace and annotate it with the owner."""
+    try:
+        pods = kubectl_json(["get", "pods", "-l", "devpod.sh/created=true"])
+        if pods:
+            for pod in pods.get("items", []):
+                for c in pod["spec"].get("containers", []):
+                    for vm in c.get("volumeMounts", []):
+                        if vm.get("mountPath", "").endswith(f"/{ws_name}"):
+                            kubectl(["annotate", "pod", pod["metadata"]["name"],
+                                     f"devpod-dashboard/owner={owner}", "--overwrite"])
+                            return
+    except Exception:
+        pass
+
+
 def get_workspace_detail(ws_name):
-    """Gather detailed info about a workspace: pod spec, events, PVCs, usage, git repo."""
+    """Gather detailed info about a workspace: pod spec, events, PVCs, usage, git info."""
     detail = {
         "name": ws_name, "status": "Unknown", "pod": None, "events": [],
         "pvcs": [], "containers": [], "usage": None, "repo": "",
         "running": False, "creating": False, "uid": "",
         "pod_ip": "", "node": "", "phase": "", "conditions": [], "age": "",
         "resources": {},
+        "branch": "", "dirty": False, "last_commit": "",
+        "pvc_usage": {}, "owner": "", "last_accessed": "", "expiry_warning": "",
     }
 
     # Check if creating
@@ -537,6 +648,12 @@ def get_workspace_detail(ws_name):
         detail["node"] = spec.get("nodeName", "")
         detail["conditions"] = status.get("conditions", [])
 
+        # Ownership + expiry annotations
+        annotations = meta.get("annotations", {})
+        detail["owner"] = annotations.get("devpod-dashboard/owner", "")
+        detail["last_accessed"] = annotations.get("devpod-dashboard/last-accessed", "")
+        detail["expiry_warning"] = annotations.get("devpod-dashboard/expiry-warning", "")
+
         # Age
         created = meta.get("creationTimestamp", "")
         if created:
@@ -579,9 +696,16 @@ def get_workspace_detail(ws_name):
                 "lim_mem": c_res.get("limits", {}).get("memory", ""),
             }
 
-        # Git repo
+        # Git info
         if detail["running"]:
-            detail["repo"] = get_git_repo_for_pod(meta["name"], ws_name)
+            git_info = get_git_info_for_pod(meta["name"], ws_name)
+            detail["repo"] = git_info["repo"]
+            detail["branch"] = git_info["branch"]
+            detail["dirty"] = git_info["dirty"]
+            detail["last_commit"] = git_info["last_commit"]
+
+            # PVC usage (only for running pods)
+            detail["pvc_usage"] = get_pvc_usage(meta["name"], ws_name)
 
         # kubectl top (best-effort)
         try:

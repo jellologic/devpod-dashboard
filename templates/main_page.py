@@ -1,15 +1,17 @@
 """Main dashboard page rendering."""
 
+import html as html_mod
 from datetime import datetime, timezone
 
 from ..auth import get_host_ip
 from .. import config
+from ..schedules import get_schedules as _get_all_schedules, get_expiry_days
 from .base import wrap_page
 from .styles import MAIN_PAGE_CSS
 from .scripts import MAIN_PAGE_JS
 
 
-def render_main_page(workspaces, settings):
+def render_main_page(workspaces, settings, user="admin"):
     ip = get_host_ip()
     with config.stats_lock:
         st = dict(config.sys_stats)
@@ -69,6 +71,22 @@ def render_main_page(workspaces, settings):
     lr = settings.get("limitrange", {})
     quota = settings.get("quota", {})
 
+    # Schedule indicator
+    try:
+        _all_scheds = _get_all_schedules()
+        schedule_names = {s.get("workspace") for s in _all_scheds}
+    except Exception:
+        schedule_names = set()
+
+    # Expiry days for settings panel
+    try:
+        expiry_days = get_expiry_days()
+    except Exception:
+        expiry_days = 0
+
+    # User display
+    user_display = f" &middot; Logged in as <strong>{html_mod.escape(user)}</strong>" if user else ""
+
     # Workspace rows
     ws_rows = ""
     for w in workspaces:
@@ -78,8 +96,22 @@ def render_main_page(workspaces, settings):
         repo = w.get("repo", "")
         repo_short = repo.replace("https://github.com/", "").replace("https://", "") if repo else ""
 
+        # Git branch info (Feature 1)
+        branch = w.get("branch", "")
+        dirty = w.get("dirty", False)
+        git_branch_html = ""
+        if branch and w.get("running", False):
+            dot_cls = "dirty" if dirty else "clean"
+            git_branch_html = f' <span class="git-dot {dot_cls}"></span><span class="git-branch">{html_mod.escape(branch)}</span>'
+
+        # Expiry indicator (Feature 5)
+        expiry_icon = ""
+        if w.get("expiry_warning"):
+            expiry_icon = ' <span class="expiry-icon" title="Approaching expiry">&#9203;</span>'
+
         # Workspace name as link to detail page
-        name_html = f'<a href="/workspace/{w["name"]}" class="ws-name-link">{w["name"]}</a>'
+        sched_icon = ' <span title="Has schedule" style="font-size:0.72rem">&#128339;</span>' if w["name"] in schedule_names else ""
+        name_html = f'<a href="/workspace/{w["name"]}" class="ws-name-link">{w["name"]}</a>{sched_icon}{expiry_icon}'
 
         # Usage cell (actual CPU/memory from kubectl top)
         usage = w.get("usage", {})
@@ -93,6 +125,7 @@ def render_main_page(workspaces, settings):
             usage_cell = '<span class="muted">--</span>'
 
         if w["creating"]:
+            check_cell = '<td></td>'
             status_html = '<span class="st-creating">Creating...</span>'
             link = '<span class="muted">--</span>'
             actions = '<span class="muted">please wait</span>'
@@ -101,13 +134,16 @@ def render_main_page(workspaces, settings):
             repo_cell = '<span class="muted">--</span>'
             usage_cell = '<span class="muted">--</span>'
         elif w["running"]:
+            check_cell = (f'<td><input type="checkbox" class="ws-check" data-pod="{w["pod"]}" '
+                          f'data-name="{w["name"]}" data-uid="{w["uid"]}" data-running="1" '
+                          f'onchange="updateBulkBar()"></td>')
             status_html = '<span class="st-running">Running</span>'
             if w["port"]:
                 url = f"http://{ip}:{w['port']}/?folder=/workspaces/{w['name']}"
                 link = f'<a href="{url}" target="_blank">{ip}:{w["port"]}</a>'
             else:
                 link = '<span class="muted">pending...</span>'
-            repo_cell = f'<a href="{repo}" target="_blank" class="repo-link" title="{repo}">{repo_short}</a>' if repo else '<span class="muted">--</span>'
+            repo_cell = f'<a href="{repo}" target="_blank" class="repo-link" title="{repo}">{repo_short}</a>{git_branch_html}' if repo else '<span class="muted">--</span>'
             esc_repo = repo.replace("'", "\\'")
             actions = (
                 f'<button class="btn btn-red" onclick="doAction(\'stop\',\'{w["pod"]}\')">Stop</button> '
@@ -138,6 +174,9 @@ def render_main_page(workspaces, settings):
                 f'\'{r.get("req_cpu","4")}\',\'{r.get("req_mem","8Gi")}\','
                 f'\'{r.get("lim_cpu","24")}\',\'{r.get("lim_mem","64Gi")}\')">&#9998;</button>')
         else:
+            check_cell = (f'<td><input type="checkbox" class="ws-check" data-pod="{w["pod"]}" '
+                          f'data-name="{w["name"]}" data-uid="{w["uid"]}" data-running="0" '
+                          f'onchange="updateBulkBar()"></td>')
             status_html = '<span class="st-stopped">Stopped</span>'
             link = '<span class="muted">--</span>'
             repo_cell = f'<span class="repo-link" title="{repo}">{repo_short}</span>' if repo else '<span class="muted">--</span>'
@@ -153,7 +192,7 @@ def render_main_page(workspaces, settings):
             ) if r else '<span class="muted">--</span>'
 
         ws_rows += (
-            f'<tr><td>{status_html}</td><td>{name_html}</td>'
+            f'<tr>{check_cell}<td>{status_html}</td><td>{name_html}</td>'
             f'<td>{repo_cell}</td><td>{link}</td><td>{res_cell}</td><td>{usage_cell}</td><td>{timer_cell}</td><td>{actions}</td></tr>\n')
 
     ws_count = len([w for w in workspaces if w["running"]])
@@ -161,7 +200,7 @@ def render_main_page(workspaces, settings):
 
     body = f"""\
 <h1>DevPod Dashboard</h1>
-<p class="subtitle">{ws_count} running, {ws_total} workspaces &middot; {ncpu} cores &middot; {uptime} uptime &middot; {ip}</p>
+<p class="subtitle">{ws_count} running, {ws_total} workspaces &middot; {ncpu} cores &middot; {uptime} uptime &middot; {ip}{user_display}</p>
 
 <!-- System Overview -->
 <div class="sys">
@@ -251,6 +290,16 @@ def render_main_page(workspaces, settings):
       <button class="btn btn-blue btn-sm" onclick="saveQuota()">Save Quota</button>
     </div>
   </div>
+  <div class="settings-group">
+    <h4>Workspace Expiry</h4>
+    <div class="settings-row">
+      <label>Expire after (days)</label><input id="s-expiry-days" value="{expiry_days}" style="width:60px">
+      <span class="settings-used">0 = disabled</span>
+    </div>
+    <div class="settings-row">
+      <button class="btn btn-blue btn-sm" onclick="saveExpiry()">Save Expiry</button>
+    </div>
+  </div>
 </div>
 
 <!-- Workspaces -->
@@ -260,12 +309,41 @@ def render_main_page(workspaces, settings):
   <input type="text" id="ws-name" class="ws-name" placeholder="Name (optional)">
   <button class="btn btn-blue" id="create-btn" onclick="createWorkspace()">Create Workspace</button>
 </div>
+
+<!-- Templates -->
+<div class="presets-section">
+  <span class="presets-toggle" onclick="document.getElementById('presets-panel').style.display=document.getElementById('presets-panel').style.display==='none'?'block':'none'">&#128203; Templates</span>
+  <div id="presets-panel" style="display:none">
+    <div class="presets-grid" id="presets-grid"><span class="muted" style="font-size:0.78rem">Loading...</span></div>
+    <button class="btn btn-sm" style="background:#30363d;color:#c9d1d9;margin-bottom:0.5rem" onclick="showSavePresetForm()">+ Save New Template</button>
+    <div class="save-preset-form" id="save-preset-form">
+      <div class="form-row"><label>Name</label><input id="sp-name" placeholder="e.g. Python Dev"></div>
+      <div class="form-row"><label>Description</label><input id="sp-desc" placeholder="optional"></div>
+      <div class="form-row"><label>Repo URL</label><input id="sp-repo" placeholder="github.com/org/repo" style="width:280px"></div>
+      <div class="form-row"><label>CPU req/lim</label><input id="sp-rcpu" value="4" style="width:60px"> / <input id="sp-lcpu" value="24" style="width:60px"></div>
+      <div class="form-row"><label>Mem req/lim</label><input id="sp-rmem" value="8Gi" style="width:60px"> / <input id="sp-lmem" value="64Gi" style="width:60px"></div>
+      <div class="form-row">
+        <button class="btn btn-blue btn-sm" onclick="savePreset()">Save Template</button>
+        <button class="btn btn-sm" style="background:var(--border2);color:var(--text);margin-left:4px" onclick="hideSavePresetForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <table>
-  <thead><tr><th>Status</th><th>Workspace</th><th>Repo</th><th>URL</th><th>Resources</th><th>Usage</th><th>Auto-Shutdown</th><th>Actions</th></tr></thead>
+  <thead><tr><th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)"></th><th>Status</th><th>Workspace</th><th>Repo</th><th>URL</th><th>Resources</th><th>Usage</th><th>Auto-Shutdown</th><th>Actions</th></tr></thead>
   <tbody>
-    {ws_rows if ws_rows else '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted)">No workspaces</td></tr>'}
+    {ws_rows if ws_rows else '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--muted)">No workspaces</td></tr>'}
   </tbody>
 </table>
+
+<!-- Bulk action bar -->
+<div class="bulk-bar" id="bulk-bar">
+  <span class="bulk-count" id="bulk-count">0 selected</span>
+  <button class="btn btn-red btn-sm" onclick="bulkAction('stop')">Stop Selected</button>
+  <button class="btn btn-green btn-sm" onclick="bulkAction('start')">Start Selected</button>
+  <button class="btn btn-outline-red btn-sm" onclick="bulkAction('delete')">Delete Selected</button>
+</div>
 
 <!-- Resize popup (shared, positioned dynamically) -->
 <div class="resize-popup" id="resize-popup">
