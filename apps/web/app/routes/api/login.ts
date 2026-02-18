@@ -1,6 +1,6 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
 import { z } from 'zod'
-import { LoginInputSchema } from '@devpod/types'
+import { LoginInputSchema } from '@workspacekit/types'
 import {
   validateLogin,
   createSession,

@@ -1,7 +1,7 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
 import { z } from 'zod'
-import { SetExpiryInputSchema } from '@devpod/types'
-import { getExpiryDays, setExpiryDays } from '@devpod/k8s'
+import { SetExpiryInputSchema } from '@workspacekit/types'
+import { getExpiryDays, setExpiryDays } from '@workspacekit/k8s'
 import { requireAuth, requireCsrf, requireRole, sanitizeError } from '~/server/auth'
 
 // ---------------------------------------------------------------------------

@@ -31,7 +31,7 @@ mock.module('../src/client', () => ({
   metricsClient: {
     getPodMetrics: mockGetPodMetrics,
   },
-  namespace: 'devpod',
+  namespace: 'workspacekit',
 }))
 
 const { getPodMetrics, parseCpuValue, parseMemValue } = await import('../src/metrics')

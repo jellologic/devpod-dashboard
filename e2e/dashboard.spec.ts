@@ -20,7 +20,7 @@ async function login(page: import('@playwright/test').Page) {
 test.describe('Login page', () => {
   test('loads the login page with sign-in form', async ({ page }) => {
     await page.goto('/login')
-    await expect(page).toHaveTitle('DevPod Dashboard')
+    await expect(page).toHaveTitle('WorkspaceKit')
     await expect(page.locator('h1')).toContainText('Sign In')
     await expect(page.locator('#login-username')).toBeVisible()
     await expect(page.locator('#login-password')).toBeVisible()
@@ -58,7 +58,7 @@ test.describe('Dashboard (authenticated)', () => {
   test('shows navigation bar with branding', async ({ page }) => {
     await expect(page.locator('nav')).toBeVisible()
     await expect(
-      page.locator('nav').getByText('DevPod Dashboard'),
+      page.locator('nav').getByText('WorkspaceKit'),
     ).toBeVisible()
   })
 

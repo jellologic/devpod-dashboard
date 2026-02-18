@@ -13,10 +13,10 @@ import {
 } from '../app/lib/utils'
 
 // ---------------------------------------------------------------------------
-// Mock @devpod/k8s for the stats module (it imports from @devpod/k8s)
+// Mock @workspacekit/k8s for the stats module (it imports from @workspacekit/k8s)
 // ---------------------------------------------------------------------------
 
-mock.module('@devpod/k8s', () => ({
+mock.module('@workspacekit/k8s', () => ({
   getPodMetrics: mock(() => Promise.resolve(new Map())),
   parseCpuValue: mock((v: string) => {
     if (v.endsWith('m')) return parseInt(v)

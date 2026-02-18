@@ -6,7 +6,7 @@ import {
   deleteService,
   deleteConfigMap,
   getWorkspaceUid,
-} from '@devpod/k8s'
+} from '@workspacekit/k8s'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -55,11 +55,11 @@ export async function cleanupOrphans(): Promise<void> {
   let metaCms: Awaited<ReturnType<typeof listConfigMaps>> = []
   try {
     ;[savedSpecCms, metaCms] = await Promise.all([
-      listConfigMaps('managed-by=devpod-dashboard,component=saved-spec').catch(
+      listConfigMaps('managed-by=workspacekit,component=saved-spec').catch(
         () => [] as Awaited<ReturnType<typeof listConfigMaps>>,
       ),
       listConfigMaps(
-        'managed-by=devpod-dashboard,component=workspace-meta',
+        'managed-by=workspacekit,component=workspace-meta',
       ).catch(() => [] as Awaited<ReturnType<typeof listConfigMaps>>),
     ])
   } catch {
@@ -130,7 +130,7 @@ async function cleanStaleCreatingConfigMaps(): Promise<void> {
   let creatingCms: Awaited<ReturnType<typeof listConfigMaps>>
   try {
     creatingCms = await listConfigMaps(
-      'managed-by=devpod-dashboard,component=creating',
+      'managed-by=workspacekit,component=creating',
     )
   } catch (err) {
     console.error('[cleanup] Failed to list creating ConfigMaps:', err)

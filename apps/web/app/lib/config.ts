@@ -1,5 +1,5 @@
 /**
- * Environment configuration for the DevPod dashboard web server.
+ * Environment configuration for the WorkspaceKit web server.
  *
  * All values can be overridden via environment variables. Sensible defaults
  * are provided so the dashboard can start without any extra config during
@@ -8,7 +8,7 @@
 
 import crypto from 'node:crypto'
 
-const DEFAULT_SECRET = 'devpod-dashboard-secret-change-me'
+const DEFAULT_SECRET = 'workspacekit-secret-change-me'
 
 function resolveSessionSecret(): string {
   const envSecret = process.env.SESSION_SECRET
@@ -27,7 +27,7 @@ export const config = {
   port: Number(process.env.DASHBOARD_PORT || '3000'),
 
   /** Kubernetes namespace where workspace resources are created. */
-  namespace: process.env.DASHBOARD_NAMESPACE || 'devpod',
+  namespace: process.env.DASHBOARD_NAMESPACE || 'workspacekit',
 
   /** Default container image for new workspaces when devcontainer.json is absent. */
   defaultImage:

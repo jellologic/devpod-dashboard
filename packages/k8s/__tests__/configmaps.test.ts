@@ -42,7 +42,7 @@ mock.module('../src/client', () => ({
     deleteNamespacedConfigMap: mockDeleteNamespacedConfigMap,
     listNamespacedConfigMap: mockListNamespacedConfigMap,
   },
-  namespace: 'devpod',
+  namespace: 'workspacekit',
 }))
 
 const {
@@ -74,10 +74,10 @@ const {
 
 describe('constants', () => {
   test('ConfigMap names are defined', () => {
-    expect(SCHEDULES_CM).toBe('devpod-dashboard-schedules')
-    expect(EXPIRY_CM).toBe('devpod-dashboard-expiry')
-    expect(TEMPLATES_CM).toBe('devpod-dashboard-templates')
-    expect(DEFAULTS_CM).toBe('devpod-dashboard-defaults')
+    expect(SCHEDULES_CM).toBe('workspacekit-schedules')
+    expect(EXPIRY_CM).toBe('workspacekit-expiry')
+    expect(TEMPLATES_CM).toBe('workspacekit-templates')
+    expect(DEFAULTS_CM).toBe('workspacekit-defaults')
   })
 })
 
@@ -111,7 +111,7 @@ describe('upsertConfigMap', () => {
   })
 
   test('creates configmap on first try', async () => {
-    const result = await upsertConfigMap('new-cm', 'devpod', { key: 'value' })
+    const result = await upsertConfigMap('new-cm', 'workspacekit', { key: 'value' })
     expect(mockCreateNamespacedConfigMap).toHaveBeenCalledTimes(1)
     expect(mockReplaceNamespacedConfigMap).not.toHaveBeenCalled()
   })
@@ -123,18 +123,18 @@ describe('upsertConfigMap', () => {
       data: { key: 'updated' },
     })
 
-    await upsertConfigMap('existing-cm', 'devpod', { key: 'updated' })
+    await upsertConfigMap('existing-cm', 'workspacekit', { key: 'updated' })
     expect(mockCreateNamespacedConfigMap).toHaveBeenCalledTimes(1)
     expect(mockReplaceNamespacedConfigMap).toHaveBeenCalledTimes(1)
   })
 
   test('throws on non-409 errors during create', async () => {
     mockCreateNamespacedConfigMap.mockRejectedValueOnce({ code: 403 })
-    await expect(upsertConfigMap('cm', 'devpod', {})).rejects.toEqual({ code: 403 })
+    await expect(upsertConfigMap('cm', 'workspacekit', {})).rejects.toEqual({ code: 403 })
   })
 
   test('passes labels to configmap', async () => {
-    await upsertConfigMap('labeled-cm', 'devpod', { k: 'v' }, { app: 'test' })
+    await upsertConfigMap('labeled-cm', 'workspacekit', { k: 'v' }, { app: 'test' })
     const callArg = mockCreateNamespacedConfigMap.mock.calls[0][0] as {
       body: { metadata: { labels: Record<string, string> } }
     }
@@ -151,7 +151,7 @@ describe('deleteConfigMap', () => {
     await deleteConfigMap('test-cm')
     expect(mockDeleteNamespacedConfigMap).toHaveBeenCalledWith({
       name: 'test-cm',
-      namespace: 'devpod',
+      namespace: 'workspacekit',
     })
   })
 
@@ -175,7 +175,7 @@ describe('listConfigMaps', () => {
     const cms = await listConfigMaps('component=workspace-meta')
     expect(cms).toHaveLength(2)
     expect(mockListNamespacedConfigMap).toHaveBeenCalledWith({
-      namespace: 'devpod',
+      namespace: 'workspacekit',
       labelSelector: 'component=workspace-meta',
     })
   })
@@ -396,7 +396,7 @@ describe('saveWorkspaceMeta', () => {
       }
     }
     expect(callArg.body.metadata.name).toBe('meta-my-project')
-    expect(callArg.body.metadata.labels['managed-by']).toBe('devpod-dashboard')
+    expect(callArg.body.metadata.labels['managed-by']).toBe('workspacekit')
     expect(callArg.body.metadata.labels['component']).toBe('workspace-meta')
     expect(callArg.body.metadata.labels['workspace-name']).toBe('my-project')
     expect(callArg.body.metadata.labels['workspace-uid']).toBe('abc123')

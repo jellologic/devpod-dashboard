@@ -8,8 +8,8 @@ import {
   getWorkspaceMeta,
   getWorkspaceName,
   getWorkspaceUid,
-} from '@devpod/k8s'
-import type { Schedule } from '@devpod/types'
+} from '@workspacekit/k8s'
+import type { Schedule } from '@workspacekit/types'
 
 // ---------------------------------------------------------------------------
 // Deduplication

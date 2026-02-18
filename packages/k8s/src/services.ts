@@ -1,10 +1,10 @@
 import * as k8s from '@kubernetes/client-node'
 import { coreV1, namespace } from './client.js'
 
-const MANAGED_BY_LABEL = 'managed-by=devpod-dashboard'
+const MANAGED_BY_LABEL = 'managed-by=workspacekit'
 
 /**
- * Lists all services with the managed-by=devpod-dashboard label.
+ * Lists all services with the managed-by=workspacekit label.
  */
 export async function listWorkspaceServices(): Promise<k8s.V1Service[]> {
   const response = await coreV1.listNamespacedService({
@@ -67,7 +67,7 @@ export function buildServiceSpec(
       name: `svc-${uid}`,
       namespace: ns,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-name': name,
         'workspace-uid': uid,
       },

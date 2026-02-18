@@ -1,9 +1,9 @@
 import * as k8s from '@kubernetes/client-node'
-import type { Resources } from '@devpod/types'
+import type { Resources } from '@workspacekit/types'
 import { coreV1, exec, kubeConfig, namespace } from './client.js'
 import type { Writable, Readable } from 'node:stream'
 
-const MANAGED_BY_LABEL = 'managed-by=devpod-dashboard'
+const MANAGED_BY_LABEL = 'managed-by=workspacekit'
 
 // ---------------------------------------------------------------------------
 // Shell escape helper (Fix 1)
@@ -28,7 +28,7 @@ function validateRepoUrl(url: string): void {
 }
 
 /**
- * Lists all pods with the managed-by=devpod-dashboard label.
+ * Lists all pods with the managed-by=workspacekit label.
  */
 export async function listWorkspacePods(): Promise<k8s.V1Pod[]> {
   const response = await coreV1.listNamespacedPod({
@@ -151,10 +151,10 @@ export function getContainerResources(pod: k8s.V1Pod): Resources {
 }
 
 /**
- * Returns true if the pod is managed by devpod-dashboard.
+ * Returns true if the pod is managed by workspacekit.
  */
 export function isDirectWorkspace(pod: k8s.V1Pod): boolean {
-  return pod.metadata?.labels?.['managed-by'] === 'devpod-dashboard'
+  return pod.metadata?.labels?.['managed-by'] === 'workspacekit'
 }
 
 /**
@@ -288,7 +288,7 @@ function buildStartupScript(opts: {
 }
 
 /**
- * Builds a V1Pod spec for a devpod workspace.
+ * Builds a V1Pod spec for a workspacekit workspace.
  */
 export function buildPodSpec(options: BuildPodSpecOptions): k8s.V1Pod {
   const {
@@ -326,7 +326,7 @@ export function buildPodSpec(options: BuildPodSpecOptions): k8s.V1Pod {
       name: `ws-${uid}`,
       namespace: ns,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-name': name,
         'workspace-uid': uid,
       },

@@ -11,7 +11,7 @@ const mockListNamespacedPVC = mock(() =>
       {
         metadata: {
           name: 'pvc-abc123',
-          labels: { 'managed-by': 'devpod-dashboard', 'workspace-uid': 'abc123' },
+          labels: { 'managed-by': 'workspacekit', 'workspace-uid': 'abc123' },
         },
         spec: { accessModes: ['ReadWriteOnce'], resources: { requests: { storage: '10Gi' } } },
         status: { phase: 'Bound' },
@@ -45,7 +45,7 @@ mock.module('../src/client', () => ({
     createNamespacedPersistentVolumeClaim: mockCreateNamespacedPVC,
     deleteNamespacedPersistentVolumeClaim: mockDeleteNamespacedPVC,
   },
-  namespace: 'devpod',
+  namespace: 'workspacekit',
 }))
 
 const {
@@ -71,8 +71,8 @@ describe('listWorkspacePvcs', () => {
     expect(pvcs).toHaveLength(1)
     expect(pvcs[0].metadata?.name).toBe('pvc-abc123')
     expect(mockListNamespacedPVC).toHaveBeenCalledWith({
-      namespace: 'devpod',
-      labelSelector: 'managed-by=devpod-dashboard',
+      namespace: 'workspacekit',
+      labelSelector: 'managed-by=workspacekit',
     })
   })
 
@@ -91,7 +91,7 @@ describe('listAllPvcs', () => {
   test('lists all PVCs without label filter', async () => {
     await listAllPvcs()
     expect(mockListNamespacedPVC).toHaveBeenCalledWith({
-      namespace: 'devpod',
+      namespace: 'workspacekit',
     })
   })
 })
@@ -141,7 +141,7 @@ describe('deletePvc', () => {
     await deletePvc('pvc-abc123')
     expect(mockDeleteNamespacedPVC).toHaveBeenCalledWith({
       name: 'pvc-abc123',
-      namespace: 'devpod',
+      namespace: 'workspacekit',
     })
   })
 
@@ -158,11 +158,11 @@ describe('deletePvc', () => {
 
 describe('buildPvcSpec', () => {
   test('builds a PVC spec with correct fields', () => {
-    const pvc = buildPvcSpec('my-project', 'abc123', '10Gi', 'devpod')
+    const pvc = buildPvcSpec('my-project', 'abc123', '10Gi', 'workspacekit')
 
     expect(pvc.metadata?.name).toBe('pvc-abc123')
-    expect(pvc.metadata?.namespace).toBe('devpod')
-    expect(pvc.metadata?.labels?.['managed-by']).toBe('devpod-dashboard')
+    expect(pvc.metadata?.namespace).toBe('workspacekit')
+    expect(pvc.metadata?.labels?.['managed-by']).toBe('workspacekit')
     expect(pvc.metadata?.labels?.['workspace-name']).toBe('my-project')
     expect(pvc.metadata?.labels?.['workspace-uid']).toBe('abc123')
     expect(pvc.spec?.accessModes).toEqual(['ReadWriteOnce'])
@@ -171,6 +171,6 @@ describe('buildPvcSpec', () => {
 
   test('uses default namespace', () => {
     const pvc = buildPvcSpec('proj', 'uid1', '5Gi')
-    expect(pvc.metadata?.namespace).toBe('devpod')
+    expect(pvc.metadata?.namespace).toBe('workspacekit')
   })
 })

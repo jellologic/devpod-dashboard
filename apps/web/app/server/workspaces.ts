@@ -36,8 +36,8 @@ import {
   getWorkspaceDefaults,
   getPodEvents,
   namespace,
-} from '@devpod/k8s'
-import type { BuildPodSpecOptions } from '@devpod/k8s'
+} from '@workspacekit/k8s'
+import type { BuildPodSpecOptions } from '@workspacekit/k8s'
 import {
   CreateWorkspaceInputSchema,
   StopWorkspaceInputSchema,
@@ -48,13 +48,13 @@ import {
   DuplicateWorkspaceInputSchema,
   SetTimerInputSchema,
   BulkActionInputSchema,
-} from '@devpod/types'
+} from '@workspacekit/types'
 import type {
   Workspace,
   WorkspaceDetail,
   ApiResponse,
   Resources,
-} from '@devpod/types'
+} from '@workspacekit/types'
 import { config } from '~/lib/config'
 import { generateUid, repoToName, sanitizeName } from '~/lib/utils'
 import { getPodMetricsCache } from './stats'
@@ -71,7 +71,7 @@ import { requireServerFnAuth, requireRole } from './auth'
  */
 async function fetchDevcontainerConfig(
   repoUrl: string,
-): Promise<{ image: string; postCreateCmd: string; features: import('@devpod/k8s').DevcontainerFeature[] }> {
+): Promise<{ image: string; postCreateCmd: string; features: import('@workspacekit/k8s').DevcontainerFeature[] }> {
   try {
     // Parse GitHub repo URL: https://github.com/{owner}/{repo}
     const match = repoUrl.match(
@@ -113,7 +113,7 @@ async function fetchDevcontainerConfig(
     }
 
     // Parse devcontainer features
-    const features: import('@devpod/k8s').DevcontainerFeature[] = []
+    const features: import('@workspacekit/k8s').DevcontainerFeature[] = []
     if (typeof devcontainer.features === 'object' && devcontainer.features !== null) {
       for (const [key, value] of Object.entries(devcontainer.features as Record<string, unknown>)) {
         // Parse ghcr.io/repo/name:tag (tag defaults to "latest")
@@ -160,17 +160,17 @@ function podToWorkspace(
     uid,
     running: ready,
     creating: hasCreationLog(wsName),
-    shutdown_at: annotations['devpod/shutdown-at'] ?? '',
-    shutdown_hours: annotations['devpod/shutdown-hours'] ?? '',
+    shutdown_at: annotations['wsk/shutdown-at'] ?? '',
+    shutdown_hours: annotations['wsk/shutdown-hours'] ?? '',
     resources,
-    repo: annotations['devpod/repo'] ?? '',
-    branch: annotations['devpod/branch'] ?? '',
-    dirty: annotations['devpod/dirty'] === 'true',
-    last_commit: annotations['devpod/last-commit'] ?? '',
+    repo: annotations['wsk/repo'] ?? '',
+    branch: annotations['wsk/branch'] ?? '',
+    dirty: annotations['wsk/dirty'] === 'true',
+    last_commit: annotations['wsk/last-commit'] ?? '',
     usage: metric ? { cpu: metric.cpu, memory: metric.memory } : undefined,
-    owner: annotations['devpod/owner'] ?? '',
-    last_accessed: annotations['devpod/last-accessed'] ?? '',
-    expiry_warning: annotations['devpod/expiry-warning'] ?? '',
+    owner: annotations['wsk/owner'] ?? '',
+    last_accessed: annotations['wsk/last-accessed'] ?? '',
+    expiry_warning: annotations['wsk/expiry-warning'] ?? '',
   }
 }
 
@@ -208,14 +208,14 @@ function savedSpecToWorkspace(
       shutdown_at: '',
       shutdown_hours: '',
       resources,
-      repo: annotations['devpod/repo'] ?? '',
-      branch: annotations['devpod/branch'] ?? '',
-      dirty: annotations['devpod/dirty'] === 'true',
-      last_commit: annotations['devpod/last-commit'] ?? '',
+      repo: annotations['wsk/repo'] ?? '',
+      branch: annotations['wsk/branch'] ?? '',
+      dirty: annotations['wsk/dirty'] === 'true',
+      last_commit: annotations['wsk/last-commit'] ?? '',
       usage: undefined,
-      owner: annotations['devpod/owner'] ?? '',
-      last_accessed: annotations['devpod/last-accessed'] ?? '',
-      expiry_warning: annotations['devpod/expiry-warning'] ?? '',
+      owner: annotations['wsk/owner'] ?? '',
+      last_accessed: annotations['wsk/last-accessed'] ?? '',
+      expiry_warning: annotations['wsk/expiry-warning'] ?? '',
     }
   } catch {
     return null
@@ -236,7 +236,7 @@ export const getWorkspaces = createServerFn({ method: 'GET' }).handler(
     const [pods, services, savedCms] = await Promise.all([
       listWorkspacePods(),
       listWorkspaceServices(),
-      listConfigMaps('managed-by=devpod-dashboard,component=saved-spec'),
+      listConfigMaps('managed-by=workspacekit,component=saved-spec'),
     ])
 
     // Build service NodePort lookup by workspace UID
@@ -345,7 +345,7 @@ export const getWorkspaceDetail = createServerFn({ method: 'GET' })
         pvcs: wsPvcs,
         containers,
         usage: metric ? { cpu: metric.cpu, memory: metric.memory } : null,
-        repo: annotations['devpod/repo'] ?? '',
+        repo: annotations['wsk/repo'] ?? '',
         running: ready,
         creating: hasCreationLog(name),
         uid,
@@ -355,19 +355,19 @@ export const getWorkspaceDetail = createServerFn({ method: 'GET' })
         conditions: (pod.status?.conditions ?? []) as unknown[],
         age,
         resources,
-        branch: annotations['devpod/branch'] ?? '',
-        dirty: annotations['devpod/dirty'] === 'true',
-        last_commit: annotations['devpod/last-commit'] ?? '',
+        branch: annotations['wsk/branch'] ?? '',
+        dirty: annotations['wsk/dirty'] === 'true',
+        last_commit: annotations['wsk/last-commit'] ?? '',
         pvc_usage: {},
-        owner: annotations['devpod/owner'] ?? '',
-        last_accessed: annotations['devpod/last-accessed'] ?? '',
-        expiry_warning: annotations['devpod/expiry-warning'] ?? '',
+        owner: annotations['wsk/owner'] ?? '',
+        last_accessed: annotations['wsk/last-accessed'] ?? '',
+        expiry_warning: annotations['wsk/expiry-warning'] ?? '',
       }
     }
 
     // Workspace is stopped -- look for saved spec
     const savedCms = await listConfigMaps(
-      `managed-by=devpod-dashboard,workspace-name=${name}`,
+      `managed-by=workspacekit,workspace-name=${name}`,
     )
     const savedCm = savedCms.find(
       (cm) => cm.metadata?.name?.startsWith('saved-'),
@@ -414,7 +414,7 @@ export const getWorkspaceDetail = createServerFn({ method: 'GET' })
       pvcs: wsPvcs,
       containers: [],
       usage: null,
-      repo: annotations['devpod/repo'] ?? '',
+      repo: annotations['wsk/repo'] ?? '',
       running: false,
       creating: false,
       uid,
@@ -424,13 +424,13 @@ export const getWorkspaceDetail = createServerFn({ method: 'GET' })
       conditions: [],
       age: '',
       resources,
-      branch: annotations['devpod/branch'] ?? '',
-      dirty: annotations['devpod/dirty'] === 'true',
-      last_commit: annotations['devpod/last-commit'] ?? '',
+      branch: annotations['wsk/branch'] ?? '',
+      dirty: annotations['wsk/dirty'] === 'true',
+      last_commit: annotations['wsk/last-commit'] ?? '',
       pvc_usage: {},
-      owner: annotations['devpod/owner'] ?? '',
-      last_accessed: annotations['devpod/last-accessed'] ?? '',
-      expiry_warning: annotations['devpod/expiry-warning'] ?? '',
+      owner: annotations['wsk/owner'] ?? '',
+      last_accessed: annotations['wsk/last-accessed'] ?? '',
+      expiry_warning: annotations['wsk/expiry-warning'] ?? '',
     }
   })
 
@@ -496,9 +496,9 @@ export const createWorkspace = createServerFn({ method: 'POST' })
     if (!podSpec.metadata!.annotations) {
       podSpec.metadata!.annotations = {}
     }
-    podSpec.metadata!.annotations['devpod/repo'] = repo
+    podSpec.metadata!.annotations['wsk/repo'] = repo
     if (owner) {
-      podSpec.metadata!.annotations['devpod/owner'] = owner
+      podSpec.metadata!.annotations['wsk/owner'] = owner
     }
 
     await createPod(podSpec)
@@ -653,9 +653,9 @@ export const rebuildWorkspace = createServerFn({ method: 'POST' })
     if (!podSpec.metadata!.annotations) {
       podSpec.metadata!.annotations = {}
     }
-    podSpec.metadata!.annotations['devpod/repo'] = repo
+    podSpec.metadata!.annotations['wsk/repo'] = repo
     if (owner) {
-      podSpec.metadata!.annotations['devpod/owner'] = owner
+      podSpec.metadata!.annotations['wsk/owner'] = owner
     }
 
     await createPod(podSpec)
@@ -772,7 +772,7 @@ export const duplicateWorkspace = createServerFn({ method: 'POST' })
     if (!podSpec.metadata!.annotations) {
       podSpec.metadata!.annotations = {}
     }
-    podSpec.metadata!.annotations['devpod/repo'] = repo
+    podSpec.metadata!.annotations['wsk/repo'] = repo
 
     await createPod(podSpec)
 
@@ -796,8 +796,8 @@ export const setTimer = createServerFn({ method: 'POST' })
     if (hours <= 0) {
       // Clear timer
       await removePodAnnotations(podName, [
-        'devpod/shutdown-at',
-        'devpod/shutdown-hours',
+        'wsk/shutdown-at',
+        'wsk/shutdown-hours',
       ])
       return { ok: true, message: 'Timer cleared' }
     }
@@ -807,8 +807,8 @@ export const setTimer = createServerFn({ method: 'POST' })
     ).toISOString()
 
     await patchPodAnnotations(podName, {
-      'devpod/shutdown-at': shutdownAt,
-      'devpod/shutdown-hours': String(hours),
+      'wsk/shutdown-at': shutdownAt,
+      'wsk/shutdown-hours': String(hours),
     })
 
     return { ok: true, message: `Timer set: ${hours}h` }

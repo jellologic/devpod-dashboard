@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Terminal as TerminalComponent } from '@devpod/ui'
-import type { WorkspaceDetail, UsageEntry } from '@devpod/types'
+import { Terminal as TerminalComponent } from '@workspacekit/ui'
+import type { WorkspaceDetail, UsageEntry } from '@workspacekit/types'
 import { cn } from '~/lib/cn'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
@@ -351,7 +351,7 @@ function WorkspaceDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'devpod-dashboard',
+          'X-Requested-With': 'workspacekit',
         },
         body: JSON.stringify({ action, ...body }),
       })

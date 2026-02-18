@@ -46,7 +46,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'DevPod Dashboard' },
+      { title: 'WorkspaceKit' },
       {
         name: 'description',
         content: 'Cloud development workspace management dashboard',
@@ -66,7 +66,7 @@ function RootLayout() {
   const handleLogout = async () => {
     await fetch('/api/login', {
       method: 'DELETE',
-      headers: { 'X-Requested-With': 'devpod-dashboard' },
+      headers: { 'X-Requested-With': 'workspacekit' },
     })
     window.location.href = '/login'
   }
@@ -97,11 +97,11 @@ function RootLayout() {
               {/* Logo */}
               <div className="flex h-14 items-center gap-3 border-b border-black/[0.06] px-4">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#0071e3] to-[#0077ED] text-sm font-extrabold text-white shadow-sm">
-                  D
+                  W
                 </div>
                 {!sidebarCollapsed && (
                   <span className="text-sm font-semibold text-foreground">
-                    DevPod
+                    WorkspaceKit
                   </span>
                 )}
               </div>

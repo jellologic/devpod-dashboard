@@ -1,31 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: devpod-dashboard
-  namespace: devpod
+  name: workspacekit
+  namespace: workspacekit
   labels:
-    app: devpod-dashboard
+    app: workspacekit
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: devpod-dashboard
+      app: workspacekit
   template:
     metadata:
       labels:
-        app: devpod-dashboard
+        app: workspacekit
     spec:
-      serviceAccountName: devpod-dashboard
+      serviceAccountName: workspacekit
       containers:
-        - name: devpod-dashboard
-          image: devpod-dashboard:latest
+        - name: workspacekit
+          image: workspacekit:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: devpod-dashboard-config
+                name: workspacekit-config
             - secretRef:
                 name: gh-credentials
                 optional: true

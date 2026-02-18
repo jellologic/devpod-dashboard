@@ -12,7 +12,7 @@ const mockListNamespacedPod = mock(() =>
         metadata: {
           name: 'ws-abc123',
           labels: {
-            'managed-by': 'devpod-dashboard',
+            'managed-by': 'workspacekit',
             'workspace-name': 'my-project',
             'workspace-uid': 'abc123',
           },
@@ -45,7 +45,7 @@ const mockReadNamespacedPod = mock(() =>
     metadata: {
       name: 'ws-abc123',
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-name': 'my-project',
         'workspace-uid': 'abc123',
       },
@@ -79,7 +79,7 @@ mock.module('../src/client', () => ({
   exec: {
     exec: mock(() => Promise.resolve({})),
   },
-  namespace: 'devpod',
+  namespace: 'workspacekit',
 }))
 
 // Import after mocking
@@ -112,8 +112,8 @@ describe('listWorkspacePods', () => {
     expect(pods).toHaveLength(1)
     expect(pods[0].metadata?.name).toBe('ws-abc123')
     expect(mockListNamespacedPod).toHaveBeenCalledWith({
-      namespace: 'devpod',
-      labelSelector: 'managed-by=devpod-dashboard',
+      namespace: 'workspacekit',
+      labelSelector: 'managed-by=workspacekit',
     })
   })
 
@@ -172,7 +172,7 @@ describe('deletePod', () => {
     await deletePod('ws-abc123')
     expect(mockDeleteNamespacedPod).toHaveBeenCalledWith({
       name: 'ws-abc123',
-      namespace: 'devpod',
+      namespace: 'workspacekit',
       gracePeriodSeconds: 30,
     })
   })
@@ -181,7 +181,7 @@ describe('deletePod', () => {
     await deletePod('ws-abc123', 0)
     expect(mockDeleteNamespacedPod).toHaveBeenCalledWith({
       name: 'ws-abc123',
-      namespace: 'devpod',
+      namespace: 'workspacekit',
       gracePeriodSeconds: 0,
     })
   })
@@ -262,7 +262,7 @@ describe('getContainerResources', () => {
 describe('isDirectWorkspace', () => {
   test('returns true for managed pods', () => {
     const pod = {
-      metadata: { labels: { 'managed-by': 'devpod-dashboard' } },
+      metadata: { labels: { 'managed-by': 'workspacekit' } },
     } as k8s.V1Pod
     expect(isDirectWorkspace(pod)).toBe(true)
   })
@@ -376,7 +376,7 @@ describe('buildPodSpec', () => {
     })
 
     expect(pod.metadata?.name).toBe('ws-abc123')
-    expect(pod.metadata?.labels?.['managed-by']).toBe('devpod-dashboard')
+    expect(pod.metadata?.labels?.['managed-by']).toBe('workspacekit')
     expect(pod.metadata?.labels?.['workspace-name']).toBe('my-project')
     expect(pod.metadata?.labels?.['workspace-uid']).toBe('abc123')
 

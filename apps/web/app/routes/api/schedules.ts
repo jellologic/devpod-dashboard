@@ -1,8 +1,8 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
 import { z } from 'zod'
-import { SetScheduleInputSchema, RemoveScheduleInputSchema } from '@devpod/types'
-import type { Schedule } from '@devpod/types'
-import { getSchedules, saveSchedules } from '@devpod/k8s'
+import { SetScheduleInputSchema, RemoveScheduleInputSchema } from '@workspacekit/types'
+import type { Schedule } from '@workspacekit/types'
+import { getSchedules, saveSchedules } from '@workspacekit/k8s'
 import { requireAuth, requireCsrf, requireRole, sanitizeError } from '~/server/auth'
 
 // ---------------------------------------------------------------------------

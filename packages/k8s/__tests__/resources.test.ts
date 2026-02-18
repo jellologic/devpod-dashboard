@@ -6,7 +6,7 @@ import { describe, test, expect, mock, beforeEach } from 'bun:test'
 
 const mockReadNamespacedLimitRange = mock(() =>
   Promise.resolve({
-    metadata: { name: 'devpod-limits' },
+    metadata: { name: 'workspacekit-limits' },
     spec: {
       limits: [
         {
@@ -25,7 +25,7 @@ const mockReplaceNamespacedLimitRange = mock(() => Promise.resolve({}))
 
 const mockReadNamespacedResourceQuota = mock(() =>
   Promise.resolve({
-    metadata: { name: 'devpod-quota' },
+    metadata: { name: 'workspacekit-quota' },
     spec: {
       hard: {
         'requests.cpu': '16',
@@ -59,7 +59,7 @@ mock.module('../src/client', () => ({
     createNamespacedResourceQuota: mockCreateNamespacedResourceQuota,
     replaceNamespacedResourceQuota: mockReplaceNamespacedResourceQuota,
   },
-  namespace: 'devpod',
+  namespace: 'workspacekit',
 }))
 
 const {
@@ -97,7 +97,7 @@ describe('getLimitRange', () => {
 
   test('returns null when no Container limit type', async () => {
     mockReadNamespacedLimitRange.mockResolvedValueOnce({
-      metadata: { name: 'devpod-limits' },
+      metadata: { name: 'workspacekit-limits' },
       spec: { limits: [{ type: 'Pod' }] },
     })
     const lr = await getLimitRange()

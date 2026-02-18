@@ -1,7 +1,7 @@
 import { describe, test, expect, mock, beforeEach } from 'bun:test'
 
 // ---------------------------------------------------------------------------
-// Mock functions for @devpod/k8s
+// Mock functions for @workspacekit/k8s
 // ---------------------------------------------------------------------------
 
 const mockListWorkspacePods = mock(() => Promise.resolve([]))
@@ -35,7 +35,7 @@ const mockBuildPodSpec = mock((opts: { name: string; uid: string }) => ({
   metadata: {
     name: `ws-${opts.uid}`,
     labels: {
-      'managed-by': 'devpod-dashboard',
+      'managed-by': 'workspacekit',
       'workspace-name': opts.name,
       'workspace-uid': opts.uid,
     },
@@ -56,7 +56,7 @@ const mockBuildServiceSpec = mock((name: string, uid: string) => ({
   metadata: {
     name: `svc-${uid}`,
     labels: {
-      'managed-by': 'devpod-dashboard',
+      'managed-by': 'workspacekit',
       'workspace-name': name,
       'workspace-uid': uid,
     },
@@ -69,7 +69,7 @@ const mockBuildServiceSpec = mock((name: string, uid: string) => ({
 const mockBuildPvcSpec = mock((_name: string, uid: string, _diskSize: string) => ({
   metadata: {
     name: `pvc-${uid}`,
-    labels: { 'managed-by': 'devpod-dashboard' },
+    labels: { 'managed-by': 'workspacekit' },
   },
   spec: {
     accessModes: ['ReadWriteOnce'],
@@ -94,7 +94,7 @@ const mockGetContainerResources = mock(() => ({
 }))
 const mockIsDirectWorkspace = mock(
   (pod: { metadata?: { labels?: Record<string, string> } }) =>
-    pod.metadata?.labels?.['managed-by'] === 'devpod-dashboard',
+    pod.metadata?.labels?.['managed-by'] === 'workspacekit',
 )
 const mockListWorkspaceServices = mock(() => Promise.resolve([]))
 const mockGetPodMetrics = mock(() => Promise.resolve(new Map()))
@@ -102,7 +102,7 @@ const mockGetPodEvents = mock(() => Promise.resolve([]))
 const mockListWorkspacePvcs = mock(() => Promise.resolve([]))
 const mockRemovePodAnnotations = mock(() => Promise.resolve({}))
 
-mock.module('@devpod/k8s', () => ({
+mock.module('@workspacekit/k8s', () => ({
   listWorkspacePods: mockListWorkspacePods,
   getPod: mockGetPod,
   createPod: mockCreatePod,
@@ -134,7 +134,7 @@ mock.module('@devpod/k8s', () => ({
   getPodEvents: mockGetPodEvents,
   listWorkspacePvcs: mockListWorkspacePvcs,
   removePodAnnotations: mockRemovePodAnnotations,
-  namespace: 'devpod',
+  namespace: 'workspacekit',
 }))
 
 // ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ function makeRunningPod(name: string, uid: string) {
     metadata: {
       name: `ws-${uid}`,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-name': name,
         'workspace-uid': uid,
       },
@@ -178,7 +178,7 @@ function makeSavedPodSpec(name: string, uid: string) {
     metadata: {
       name: `ws-${uid}`,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-name': name,
         'workspace-uid': uid,
       },
@@ -203,7 +203,7 @@ function makeService(name: string, uid: string, nodePort: number) {
     metadata: {
       name: `svc-${uid}`,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-name': name,
         'workspace-uid': uid,
       },
@@ -316,7 +316,7 @@ describe('createWorkspace - creating a new workspace', () => {
     })
 
     expect(spec.metadata?.name).toBe('ws-xyz789')
-    expect(spec.metadata?.labels?.['managed-by']).toBe('devpod-dashboard')
+    expect(spec.metadata?.labels?.['managed-by']).toBe('workspacekit')
     expect(spec.metadata?.labels?.['workspace-name']).toBe('my-project')
     expect(spec.metadata?.labels?.['workspace-uid']).toBe('xyz789')
   })
@@ -490,7 +490,7 @@ describe('workspace naming and spec building', () => {
       metadata: {
         name: 'svc-uid1',
         labels: {
-          'managed-by': 'devpod-dashboard',
+          'managed-by': 'workspacekit',
           'workspace-name': 'test',
           'workspace-uid': 'uid1',
         },
@@ -514,7 +514,7 @@ describe('workspace naming and spec building', () => {
       metadata: {
         name: 'pvc-uid1',
         labels: {
-          'managed-by': 'devpod-dashboard',
+          'managed-by': 'workspacekit',
           'workspace-name': 'test',
           'workspace-uid': 'uid1',
         },

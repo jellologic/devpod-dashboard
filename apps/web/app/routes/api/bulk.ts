@@ -1,13 +1,13 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
 import { z } from 'zod'
-import { BulkActionInputSchema } from '@devpod/types'
+import { BulkActionInputSchema } from '@workspacekit/types'
 import {
   deletePod,
   deleteService,
   deletePvc,
   getSavedPodSpec,
   createPod,
-} from '@devpod/k8s'
+} from '@workspacekit/k8s'
 import { requireAuth, requireCsrf, requireRole, sanitizeError } from '~/server/auth'
 
 // ---------------------------------------------------------------------------

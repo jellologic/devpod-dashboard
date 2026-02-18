@@ -1,16 +1,16 @@
 import * as k8s from '@kubernetes/client-node'
-import type { LimitRange, Quota } from '@devpod/types'
+import type { LimitRange, Quota } from '@workspacekit/types'
 import { coreV1, namespace } from './client.js'
 
-const LIMIT_RANGE_NAME = 'devpod-limits'
-const RESOURCE_QUOTA_NAME = 'devpod-quota'
+const LIMIT_RANGE_NAME = 'workspacekit-limits'
+const RESOURCE_QUOTA_NAME = 'workspacekit-quota'
 
 // ---------------------------------------------------------------------------
 // LimitRange
 // ---------------------------------------------------------------------------
 
 /**
- * Gets the devpod-limits LimitRange. Returns parsed fields or null if not found.
+ * Gets the workspacekit-limits LimitRange. Returns parsed fields or null if not found.
  */
 export async function getLimitRange(): Promise<LimitRange | null> {
   try {
@@ -41,7 +41,7 @@ export async function getLimitRange(): Promise<LimitRange | null> {
 }
 
 /**
- * Creates or replaces the devpod-limits LimitRange.
+ * Creates or replaces the workspacekit-limits LimitRange.
  */
 export async function saveLimitRange(
   maxCpu: string,
@@ -101,7 +101,7 @@ export async function saveLimitRange(
 // ---------------------------------------------------------------------------
 
 /**
- * Gets the devpod-quota ResourceQuota. Returns parsed fields or null if not found.
+ * Gets the workspacekit-quota ResourceQuota. Returns parsed fields or null if not found.
  */
 export async function getResourceQuota(): Promise<Quota | null> {
   try {
@@ -127,7 +127,7 @@ export async function getResourceQuota(): Promise<Quota | null> {
 }
 
 /**
- * Creates or replaces the devpod-quota ResourceQuota.
+ * Creates or replaces the workspacekit-quota ResourceQuota.
  */
 export async function saveResourceQuota(
   reqCpu: string,

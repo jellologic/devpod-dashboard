@@ -1,5 +1,5 @@
 {
-  "name": "@devpod/k8s",
+  "name": "@workspacekit/k8s",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@devpod/types": "workspace:*",
+    "@workspacekit/types": "workspace:*",
     "@kubernetes/client-node": "^1.0.0"
   },
   "devDependencies": {

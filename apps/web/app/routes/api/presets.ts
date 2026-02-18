@@ -4,8 +4,8 @@ import {
   SavePresetInputSchema,
   DeletePresetInputSchema,
   CreateFromPresetInputSchema,
-} from '@devpod/types'
-import type { Preset } from '@devpod/types'
+} from '@workspacekit/types'
+import type { Preset } from '@workspacekit/types'
 import {
   getPresets,
   savePresets,
@@ -18,7 +18,7 @@ import {
   createService,
   savePodSpec,
   saveWorkspaceMeta,
-} from '@devpod/k8s'
+} from '@workspacekit/k8s'
 import { config } from '~/lib/config'
 import { generateUid, sanitizeName } from '~/lib/utils'
 import { requireAuth, requireCsrf, requireRole, sanitizeError } from '~/server/auth'

@@ -1,5 +1,5 @@
 {
-  "name": "@devpod/web",
+  "name": "@workspacekit/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,9 +11,9 @@
     "clean": "rm -rf .output .vinxi"
   },
   "dependencies": {
-    "@devpod/k8s": "workspace:*",
-    "@devpod/types": "workspace:*",
-    "@devpod/ui": "workspace:*",
+    "@workspacekit/k8s": "workspace:*",
+    "@workspacekit/types": "workspace:*",
+    "@workspacekit/ui": "workspace:*",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "1.114.29",

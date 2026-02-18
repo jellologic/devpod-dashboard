@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test'
 import React from 'react'
 import { renderToString } from 'react-dom/server'
 import { StatsPanel } from '../src/stats-panel'
-import type { SystemStats } from '@devpod/types'
+import type { SystemStats } from '@workspacekit/types'
 
 // ---------------------------------------------------------------------------
 // Mock data

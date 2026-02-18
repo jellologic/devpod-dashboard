@@ -1,5 +1,5 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
-import { coreV1, namespace } from '@devpod/k8s'
+import { coreV1, namespace } from '@workspacekit/k8s'
 import { requireAuth, sanitizeError } from '~/server/auth'
 
 // ---------------------------------------------------------------------------

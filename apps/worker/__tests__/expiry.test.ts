@@ -14,7 +14,7 @@ const mockDeleteConfigMap = mock(() => Promise.resolve())
 const mockGetWorkspaceName = mock((_pod: unknown) => '')
 const mockGetWorkspaceUid = mock((_pod: unknown) => '')
 
-mock.module('@devpod/k8s', () => ({
+mock.module('@workspacekit/k8s', () => ({
   getExpiryDays: mockGetExpiryDays,
   listWorkspacePods: mockListWorkspacePods,
   deletePod: mockDeletePod,
@@ -50,10 +50,10 @@ function makePod(
 ) {
   const annotations: Record<string, string> = {}
   if (options.lastAccessed) {
-    annotations['devpod-dashboard/last-accessed'] = options.lastAccessed
+    annotations['wsk/last-accessed'] = options.lastAccessed
   }
   if (options.expiryWarning) {
-    annotations['devpod-dashboard/expiry-warning'] = options.expiryWarning
+    annotations['wsk/expiry-warning'] = options.expiryWarning
   }
 
   return {
@@ -61,7 +61,7 @@ function makePod(
       name,
       creationTimestamp: options.creationTimestamp ?? daysAgo(0),
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-name': workspaceName,
         'workspace-uid': uid,
       },
@@ -136,7 +136,7 @@ describe('expiry - checkExpiry', () => {
     expect(mockPatchPodAnnotations).toHaveBeenCalledWith(
       'ws-warning',
       expect.objectContaining({
-        'devpod-dashboard/expiry-warning': expect.any(String),
+        'wsk/expiry-warning': expect.any(String),
       }),
     )
   })
@@ -251,7 +251,7 @@ describe('expiry - checkExpiry', () => {
     expect(mockPatchPodAnnotations).toHaveBeenCalledWith(
       'ws-warn',
       expect.objectContaining({
-        'devpod-dashboard/expiry-warning': expect.any(String),
+        'wsk/expiry-warning': expect.any(String),
       }),
     )
     expect(mockPatchPodAnnotations).toHaveBeenCalledTimes(1)

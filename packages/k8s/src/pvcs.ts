@@ -1,10 +1,10 @@
 import * as k8s from '@kubernetes/client-node'
 import { coreV1, namespace } from './client.js'
 
-const MANAGED_BY_LABEL = 'managed-by=devpod-dashboard'
+const MANAGED_BY_LABEL = 'managed-by=workspacekit'
 
 /**
- * Lists PVCs with the managed-by=devpod-dashboard label.
+ * Lists PVCs with the managed-by=workspacekit label.
  */
 export async function listWorkspacePvcs(): Promise<k8s.V1PersistentVolumeClaim[]> {
   const response = await coreV1.listNamespacedPersistentVolumeClaim({
@@ -78,7 +78,7 @@ export function buildPvcSpec(
       name: `pvc-${uid}`,
       namespace: ns,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-name': name,
         'workspace-uid': uid,
       },

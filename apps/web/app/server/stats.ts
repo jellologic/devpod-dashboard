@@ -16,9 +16,9 @@ import {
   parseMemValue,
   listWorkspacePods,
   getContainerResources,
-} from '@devpod/k8s'
-import type { PodMetric } from '@devpod/k8s'
-import type { SystemStats, UsageEntry, ProcessInfo } from '@devpod/types'
+} from '@workspacekit/k8s'
+import type { PodMetric } from '@workspacekit/k8s'
+import type { SystemStats, UsageEntry, ProcessInfo } from '@workspacekit/types'
 
 // ---------------------------------------------------------------------------
 // Constants

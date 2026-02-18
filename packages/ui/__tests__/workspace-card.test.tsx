@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test'
 import React from 'react'
 import { renderToString } from 'react-dom/server'
 import { WorkspaceCard } from '../src/workspace-card'
-import type { Workspace } from '@devpod/types'
+import type { Workspace } from '@workspacekit/types'
 
 // ---------------------------------------------------------------------------
 // Mock data

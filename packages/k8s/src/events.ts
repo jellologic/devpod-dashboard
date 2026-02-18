@@ -1,4 +1,4 @@
-import type { Event } from '@devpod/types'
+import type { Event } from '@workspacekit/types'
 import { coreV1, namespace } from './client.js'
 
 /**

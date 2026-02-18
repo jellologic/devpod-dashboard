@@ -8,14 +8,14 @@ import {
   deletePvc,
   deleteService,
   deleteConfigMap,
-} from '@devpod/k8s'
+} from '@workspacekit/k8s'
 
 // ---------------------------------------------------------------------------
 // Annotation keys
 // ---------------------------------------------------------------------------
 
-const LAST_ACCESSED_ANNOTATION = 'devpod-dashboard/last-accessed'
-const EXPIRY_WARNING_ANNOTATION = 'devpod-dashboard/expiry-warning'
+const LAST_ACCESSED_ANNOTATION = 'wsk/last-accessed'
+const EXPIRY_WARNING_ANNOTATION = 'wsk/expiry-warning'
 
 // ---------------------------------------------------------------------------
 // Constants

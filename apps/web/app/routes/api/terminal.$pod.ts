@@ -1,5 +1,5 @@
 import { createAPIFileRoute } from '@tanstack/react-start/api'
-import { exec, namespace } from '@devpod/k8s'
+import { exec, namespace } from '@workspacekit/k8s'
 import { requireAuth, requireCsrf, sanitizeError } from '~/server/auth'
 import { PassThrough } from 'node:stream'
 

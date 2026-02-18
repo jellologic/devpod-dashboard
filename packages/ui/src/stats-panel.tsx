@@ -1,5 +1,5 @@
 import React from 'react'
-import type { SystemStats } from '@devpod/types'
+import type { SystemStats } from '@workspacekit/types'
 import { theme } from './theme'
 
 export interface StatsPanelProps {

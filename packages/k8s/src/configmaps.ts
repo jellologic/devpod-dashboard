@@ -1,15 +1,15 @@
 import * as k8s from '@kubernetes/client-node'
-import type { Schedule, Preset, WorkspaceDefaults } from '@devpod/types'
+import type { Schedule, Preset, WorkspaceDefaults } from '@workspacekit/types'
 import { coreV1, namespace } from './client.js'
 
 // ---------------------------------------------------------------------------
 // ConfigMap name constants
 // ---------------------------------------------------------------------------
 
-export const SCHEDULES_CM = 'devpod-dashboard-schedules'
-export const EXPIRY_CM = 'devpod-dashboard-expiry'
-export const TEMPLATES_CM = 'devpod-dashboard-templates'
-export const DEFAULTS_CM = 'devpod-dashboard-defaults'
+export const SCHEDULES_CM = 'workspacekit-schedules'
+export const EXPIRY_CM = 'workspacekit-expiry'
+export const TEMPLATES_CM = 'workspacekit-templates'
+export const DEFAULTS_CM = 'workspacekit-defaults'
 
 // ---------------------------------------------------------------------------
 // Generic ConfigMap CRUD
@@ -225,7 +225,7 @@ export async function saveWorkspaceMeta(
       post_create_cmd: postCreateCmd,
     },
     {
-      'managed-by': 'devpod-dashboard',
+      'managed-by': 'workspacekit',
       component: 'workspace-meta',
       'workspace-name': name,
       'workspace-uid': uid,
@@ -260,9 +260,10 @@ export async function savePodSpec(
       spec: JSON.stringify(spec),
     },
     {
-      'managed-by': 'devpod-dashboard',
+      'managed-by': 'workspacekit',
       'workspace-uid': uid,
       'workspace-name': workspaceName,
+      'component': 'saved-spec',
     },
   )
 }

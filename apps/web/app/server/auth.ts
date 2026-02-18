@@ -32,7 +32,7 @@ export interface SessionPayload {
 // Cookie config
 // ---------------------------------------------------------------------------
 
-const COOKIE_NAME = 'devpod_session'
+const COOKIE_NAME = 'wsk_session'
 
 /** Maximum session lifetime: 24 hours. */
 const MAX_AGE_SECONDS = 86400
@@ -193,7 +193,7 @@ export function requireRole(session: SessionPayload, ...allowedRoles: Role[]): v
 // ---------------------------------------------------------------------------
 
 const CSRF_HEADER = 'x-requested-with'
-const CSRF_VALUE = 'devpod-dashboard'
+const CSRF_VALUE = 'workspacekit'
 
 /**
  * Validates the X-Requested-With header on mutation requests.
@@ -215,7 +215,7 @@ export function requireCsrf(request: Request): void {
  */
 export function sanitizeError(message: string): string {
   return message
-    // Strip namespace references like "in namespace \"devpod\""
+    // Strip namespace references like "in namespace \"workspacekit\""
     .replace(/\bin namespace\s+"[^"]+"/gi, '')
     // Strip internal IP addresses (10.x, 172.16-31.x, 192.168.x)
     .replace(/\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b/g, '[internal]')

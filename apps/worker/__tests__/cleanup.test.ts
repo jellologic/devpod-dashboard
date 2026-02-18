@@ -12,7 +12,7 @@ const mockDeleteService = mock(() => Promise.resolve())
 const mockDeleteConfigMap = mock(() => Promise.resolve())
 const mockGetWorkspaceUid = mock((_pod: unknown) => '')
 
-mock.module('@devpod/k8s', () => ({
+mock.module('@workspacekit/k8s', () => ({
   listWorkspacePods: mockListWorkspacePods,
   listWorkspacePvcs: mockListWorkspacePvcs,
   listWorkspaceServices: mockListWorkspaceServices,
@@ -33,7 +33,7 @@ function makePod(name: string, uid: string) {
     metadata: {
       name,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-uid': uid,
         'workspace-name': name.replace('ws-', ''),
       },
@@ -46,7 +46,7 @@ function makePvc(name: string, uid: string, workspaceName: string) {
     metadata: {
       name,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-uid': uid,
         'workspace-name': workspaceName,
       },
@@ -59,7 +59,7 @@ function makeService(name: string, uid: string) {
     metadata: {
       name,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         'workspace-uid': uid,
       },
     },
@@ -71,7 +71,7 @@ function makeSavedSpecCm(uid: string, workspaceName: string) {
     metadata: {
       name: `saved-${uid}`,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         component: 'saved-spec',
         'workspace-uid': uid,
         'workspace-name': workspaceName,
@@ -85,7 +85,7 @@ function makeMetaCm(workspaceName: string, uid: string) {
     metadata: {
       name: `meta-${workspaceName}`,
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         component: 'workspace-meta',
         'workspace-name': workspaceName,
         'workspace-uid': uid,
@@ -102,7 +102,7 @@ function makeCreatingCm(name: string, minutesAgo: number) {
         Date.now() - minutesAgo * 60 * 1000,
       ).toISOString(),
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
         component: 'creating',
       },
     },

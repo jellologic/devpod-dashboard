@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useState, useCallback } from 'react'
-import type { Workspace, SystemStats, Settings } from '@devpod/types'
+import type { Workspace, SystemStats, Settings } from '@workspacekit/types'
 import { humanBytes } from '~/lib/utils'
 import { cn } from '~/lib/cn'
 import {
@@ -66,7 +66,7 @@ const fetchSettings = createServerFn({ method: 'GET' }).handler(
     const { requireServerFnAuth } = await import('~/server/auth')
     await requireServerFnAuth()
     const { getWorkspaceDefaults, getLimitRange, getResourceQuota } =
-      await import('@devpod/k8s')
+      await import('@workspacekit/k8s')
     const [defaults, limitrange, quota] = await Promise.all([
       getWorkspaceDefaults(),
       getLimitRange(),
@@ -175,7 +175,7 @@ function DashboardPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'devpod-dashboard',
+          'X-Requested-With': 'workspacekit',
         },
         body: JSON.stringify({ action: 'create', ...body }),
       })
@@ -212,7 +212,7 @@ function DashboardPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'devpod-dashboard',
+            'X-Requested-With': 'workspacekit',
           },
           body: JSON.stringify({ action, ...data }),
         })
@@ -246,7 +246,7 @@ function DashboardPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'devpod-dashboard',
+          'X-Requested-With': 'workspacekit',
         },
         body: JSON.stringify({ action, workspaces: targets }),
       })

@@ -8,7 +8,7 @@ const mockListWorkspacePods = mock(() => Promise.resolve([]))
 const mockIsPodReady = mock((_pod: unknown) => false)
 const mockPatchPodAnnotations = mock(() => Promise.resolve({}))
 
-mock.module('@devpod/k8s', () => ({
+mock.module('@workspacekit/k8s', () => ({
   listWorkspacePods: mockListWorkspacePods,
   isPodReady: mockIsPodReady,
   patchPodAnnotations: mockPatchPodAnnotations,
@@ -36,7 +36,7 @@ function makePod(
 ) {
   const annotations: Record<string, string> = {}
   if (options.stuckAnnotation) {
-    annotations['devpod-dashboard/creation-stuck'] = options.stuckAnnotation
+    annotations['wsk/creation-stuck'] = options.stuckAnnotation
   }
 
   const containerStatuses = options.containerWaitingReason
@@ -54,7 +54,7 @@ function makePod(
       name,
       creationTimestamp: options.creationTimestamp ?? minutesAgo(1),
       labels: {
-        'managed-by': 'devpod-dashboard',
+        'managed-by': 'workspacekit',
       },
       annotations:
         Object.keys(annotations).length > 0 ? annotations : undefined,
@@ -92,8 +92,8 @@ describe('creation - checkCreatingPods', () => {
     expect(mockPatchPodAnnotations).toHaveBeenCalledWith(
       'ws-stuck',
       expect.objectContaining({
-        'devpod-dashboard/creation-stuck': expect.any(String),
-        'devpod-dashboard/creation-stuck-reason': expect.stringContaining(
+        'wsk/creation-stuck': expect.any(String),
+        'wsk/creation-stuck-reason': expect.stringContaining(
           'ImagePullBackOff',
         ),
       }),
@@ -154,7 +154,7 @@ describe('creation - checkCreatingPods', () => {
     expect(mockPatchPodAnnotations).toHaveBeenCalledWith(
       'ws-crash',
       expect.objectContaining({
-        'devpod-dashboard/creation-stuck-reason':
+        'wsk/creation-stuck-reason':
           expect.stringContaining('CrashLoopBackOff'),
       }),
     )
@@ -174,7 +174,7 @@ describe('creation - checkCreatingPods', () => {
     expect(mockPatchPodAnnotations).toHaveBeenCalledWith(
       'ws-pending',
       expect.objectContaining({
-        'devpod-dashboard/creation-stuck-reason': 'Pending',
+        'wsk/creation-stuck-reason': 'Pending',
       }),
     )
   })
@@ -220,7 +220,7 @@ describe('creation - checkCreatingPods', () => {
     expect(mockPatchPodAnnotations).toHaveBeenCalledWith(
       'ws-stuck',
       expect.objectContaining({
-        'devpod-dashboard/creation-stuck': expect.any(String),
+        'wsk/creation-stuck': expect.any(String),
       }),
     )
   })

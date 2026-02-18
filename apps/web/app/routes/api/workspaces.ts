@@ -9,7 +9,7 @@ import {
   ResizeWorkspaceInputSchema,
   DuplicateWorkspaceInputSchema,
   SetTimerInputSchema,
-} from '@devpod/types'
+} from '@workspacekit/types'
 import {
   createPod,
   deletePod,
@@ -28,7 +28,7 @@ import {
   getWorkspaceDefaults,
   getWorkspaceMeta,
   namespace,
-} from '@devpod/k8s'
+} from '@workspacekit/k8s'
 import { config } from '~/lib/config'
 import { generateUid, repoToName, sanitizeName } from '~/lib/utils'
 import { requireAuth, requireCsrf, requireRole, sanitizeError } from '~/server/auth'
@@ -170,7 +170,7 @@ async function handleCreate(body: unknown): Promise<Response> {
     podSpec.metadata = podSpec.metadata ?? {}
     podSpec.metadata.annotations = {
       ...podSpec.metadata.annotations,
-      'devpod-dashboard/owner': owner,
+      'wsk/owner': owner,
     }
   }
 
@@ -276,7 +276,7 @@ async function handleRebuild(body: unknown): Promise<Response> {
     podSpec.metadata = podSpec.metadata ?? {}
     podSpec.metadata.annotations = {
       ...podSpec.metadata.annotations,
-      'devpod-dashboard/owner': input.owner,
+      'wsk/owner': input.owner,
     }
   }
 
@@ -317,11 +317,11 @@ async function handleResize(body: unknown): Promise<Response> {
 
   // Annotate the running pod so the UI reflects the pending resize
   await patchPodAnnotations(input.pod, {
-    'devpod-dashboard/resize-pending': 'true',
-    'devpod-dashboard/req-cpu': input.req_cpu,
-    'devpod-dashboard/req-mem': input.req_mem,
-    'devpod-dashboard/lim-cpu': input.lim_cpu,
-    'devpod-dashboard/lim-mem': input.lim_mem,
+    'wsk/resize-pending': 'true',
+    'wsk/req-cpu': input.req_cpu,
+    'wsk/req-mem': input.req_mem,
+    'wsk/lim-cpu': input.lim_cpu,
+    'wsk/lim-mem': input.lim_mem,
   })
 
   return ok(
@@ -384,8 +384,8 @@ async function handleSetTimer(body: unknown): Promise<Response> {
   if (input.hours <= 0) {
     // Clear the shutdown timer
     await patchPodAnnotations(input.pod, {
-      'devpod-dashboard/shutdown-at': '',
-      'devpod-dashboard/shutdown-hours': '0',
+      'wsk/shutdown-at': '',
+      'wsk/shutdown-hours': '0',
     })
     return ok(`Shutdown timer cleared for "${input.pod}"`)
   }
@@ -395,8 +395,8 @@ async function handleSetTimer(body: unknown): Promise<Response> {
   ).toISOString()
 
   await patchPodAnnotations(input.pod, {
-    'devpod-dashboard/shutdown-at': shutdownAt,
-    'devpod-dashboard/shutdown-hours': String(input.hours),
+    'wsk/shutdown-at': shutdownAt,
+    'wsk/shutdown-hours': String(input.hours),
   })
 
   return ok(

@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: devpod-dashboard-config
-  namespace: devpod
+  name: workspacekit-config
+  namespace: workspacekit
   labels:
-    app: devpod-dashboard
+    app: workspacekit
 data:
   DASHBOARD_PORT: "3000"
-  DASHBOARD_NAMESPACE: "devpod"
+  DASHBOARD_NAMESPACE: "workspacekit"
   DASHBOARD_DEFAULT_IMAGE: "mcr.microsoft.com/devcontainers/base:ubuntu"
   OPENVSCODE_PATH: "/opt/openvscode-server"
   DASHBOARD_DISK_SIZE: "50Gi"

@@ -4,12 +4,12 @@ import {
   SaveLimitRangeInputSchema,
   SaveQuotaInputSchema,
   SaveDefaultsInputSchema,
-} from '@devpod/types'
+} from '@workspacekit/types'
 import {
   saveLimitRange,
   saveResourceQuota,
   saveWorkspaceDefaults,
-} from '@devpod/k8s'
+} from '@workspacekit/k8s'
 import { requireAuth, requireCsrf, requireRole, sanitizeError } from '~/server/auth'
 
 // ---------------------------------------------------------------------------

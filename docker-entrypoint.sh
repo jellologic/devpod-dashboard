@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "Starting DevPod Dashboard..."
+echo "Starting WorkspaceKit..."
 
 # Start worker in background
 echo "Starting worker..."

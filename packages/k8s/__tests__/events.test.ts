@@ -10,7 +10,7 @@ const mockListNamespacedEvent = mock(() =>
       {
         type: 'Normal',
         reason: 'Scheduled',
-        message: 'Successfully assigned devpod/ws-abc123 to node1',
+        message: 'Successfully assigned workspacekit/ws-abc123 to node1',
         lastTimestamp: new Date(Date.now() - 30_000), // 30 seconds ago
         metadata: { creationTimestamp: new Date(Date.now() - 60_000) },
       },
@@ -41,7 +41,7 @@ mock.module('../src/client', () => ({
   coreV1: {
     listNamespacedEvent: mockListNamespacedEvent,
   },
-  namespace: 'devpod',
+  namespace: 'workspacekit',
 }))
 
 const { getPodEvents } = await import('../src/events')
@@ -59,7 +59,7 @@ describe('getPodEvents', () => {
     const events = await getPodEvents('ws-abc123')
     expect(events).toHaveLength(3)
     expect(mockListNamespacedEvent).toHaveBeenCalledWith({
-      namespace: 'devpod',
+      namespace: 'workspacekit',
       fieldSelector: 'involvedObject.name=ws-abc123',
     })
   })

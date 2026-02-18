@@ -6,7 +6,7 @@ import {
 import { createRouter } from './router'
 import { startStatsCollection } from './server/stats'
 import { getSession } from './server/auth'
-import { exec, namespace, getPod } from '@devpod/k8s'
+import { exec, namespace, getPod } from '@workspacekit/k8s'
 import { PassThrough } from 'node:stream'
 
 // Start background stats collection when the server starts
@@ -42,14 +42,14 @@ export default {
         const podName = decodeURIComponent(match[1])
 
         // Pod access restriction (Fix 8): non-admin users can only
-        // access pods they own (devpod/owner annotation matches username)
+        // access pods they own (wsk/owner annotation matches username)
         if (session.role !== 'admin') {
           try {
             const pod = await getPod(podName)
             if (!pod) {
               return new Response('Pod not found', { status: 404 })
             }
-            const podOwner = pod.metadata?.annotations?.['devpod/owner'] ?? ''
+            const podOwner = pod.metadata?.annotations?.['wsk/owner'] ?? ''
             if (podOwner !== session.user) {
               return new Response('Forbidden: you can only access your own pods', { status: 403 })
             }

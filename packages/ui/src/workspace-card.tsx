@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import type { Workspace } from '@devpod/types'
+import type { Workspace } from '@workspacekit/types'
 import { theme } from './theme'
 
 export interface WorkspaceCardProps {

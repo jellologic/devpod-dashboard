@@ -1,5 +1,5 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from 'bun:test'
-import type { Schedule } from '@devpod/types'
+import type { Schedule } from '@workspacekit/types'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -16,7 +16,7 @@ const mockListWorkspacePods = mock(() => Promise.resolve([]))
 const mockGetWorkspaceName = mock((pod: unknown) => '')
 const mockGetWorkspaceUid = mock((pod: unknown) => '')
 
-mock.module('@devpod/k8s', () => ({
+mock.module('@workspacekit/k8s', () => ({
   getSchedules: mockGetSchedules,
   getPod: mockGetPod,
   deletePod: mockDeletePod,

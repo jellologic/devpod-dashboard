@@ -11,7 +11,7 @@ const mockListNamespacedService = mock(() =>
       {
         metadata: {
           name: 'svc-abc123',
-          labels: { 'managed-by': 'devpod-dashboard', 'workspace-uid': 'abc123' },
+          labels: { 'managed-by': 'workspacekit', 'workspace-uid': 'abc123' },
         },
         spec: {
           type: 'NodePort',
@@ -46,7 +46,7 @@ mock.module('../src/client', () => ({
     createNamespacedService: mockCreateNamespacedService,
     deleteNamespacedService: mockDeleteNamespacedService,
   },
-  namespace: 'devpod',
+  namespace: 'workspacekit',
 }))
 
 const {
@@ -72,8 +72,8 @@ describe('listWorkspaceServices', () => {
     expect(services).toHaveLength(1)
     expect(services[0].metadata?.name).toBe('svc-abc123')
     expect(mockListNamespacedService).toHaveBeenCalledWith({
-      namespace: 'devpod',
-      labelSelector: 'managed-by=devpod-dashboard',
+      namespace: 'workspacekit',
+      labelSelector: 'managed-by=workspacekit',
     })
   })
 
@@ -129,7 +129,7 @@ describe('deleteService', () => {
     await deleteService('svc-abc123')
     expect(mockDeleteNamespacedService).toHaveBeenCalledWith({
       name: 'svc-abc123',
-      namespace: 'devpod',
+      namespace: 'workspacekit',
     })
   })
 
@@ -146,11 +146,11 @@ describe('deleteService', () => {
 
 describe('buildServiceSpec', () => {
   test('builds a NodePort service spec', () => {
-    const svc = buildServiceSpec('my-project', 'abc123', 'devpod')
+    const svc = buildServiceSpec('my-project', 'abc123', 'workspacekit')
 
     expect(svc.metadata?.name).toBe('svc-abc123')
-    expect(svc.metadata?.namespace).toBe('devpod')
-    expect(svc.metadata?.labels?.['managed-by']).toBe('devpod-dashboard')
+    expect(svc.metadata?.namespace).toBe('workspacekit')
+    expect(svc.metadata?.labels?.['managed-by']).toBe('workspacekit')
     expect(svc.metadata?.labels?.['workspace-name']).toBe('my-project')
     expect(svc.metadata?.labels?.['workspace-uid']).toBe('abc123')
     expect(svc.spec?.type).toBe('NodePort')

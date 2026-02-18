@@ -2,13 +2,13 @@ import {
   listWorkspacePods,
   isPodReady,
   patchPodAnnotations,
-} from '@devpod/k8s'
+} from '@workspacekit/k8s'
 
 // ---------------------------------------------------------------------------
 // Annotation keys
 // ---------------------------------------------------------------------------
 
-const STUCK_ANNOTATION = 'devpod-dashboard/creation-stuck'
+const STUCK_ANNOTATION = 'wsk/creation-stuck'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -73,7 +73,7 @@ export async function checkCreatingPods(): Promise<void> {
       try {
         await patchPodAnnotations(podName, {
           [STUCK_ANNOTATION]: new Date(now).toISOString(),
-          'devpod-dashboard/creation-stuck-reason': reason,
+          'wsk/creation-stuck-reason': reason,
         })
       } catch (err) {
         console.error(
